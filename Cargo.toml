@@ -1,0 +1,15 @@
+[workspace]
+members = [
+    "crates/mfem-cpp",
+    "crates/mfem-sys",
+]
+
+resolver = "2"
+
+# Cargo by default builds build (only) dependencies with opt-level of 0 even in the release profile.
+# That makes sense, as such code is normally run only once. But `mfem-cpp` is special: it is a build
+# dependency of `mfem-sys`, but it compiles static libraries that do end up in the final
+# binaries.
+# So set the regular release opt-level. `cmake` crate then picks it up and passes to the C++ build.
+[profile.release.package.mfem-cpp]
+opt-level = 3
