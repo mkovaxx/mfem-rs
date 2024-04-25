@@ -3,7 +3,7 @@ name = "mfem-cpp"
 description = "Static build of MFEM for use as a Rust dependency"
 authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
 license = "MIT"
-version = "0.9.0+mfem-4.6.0"
+version = "0.1.0+mfem-4.6.0"
 edition = "2021"
 repository = "https://github.com/mkovaxx/mfem-rs"
 
