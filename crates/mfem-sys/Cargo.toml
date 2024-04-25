@@ -1,0 +1,20 @@
+[package]
+name = "mfem-sys"
+description = "Rust bindings to MFEM"
+authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/mkovaxx/mfem-rs"
+
+[dependencies]
+cxx = "1"
+
+[build-dependencies]
+cmake = "0.1"
+cxx-build = "1"
+mfem-cpp = { version = "0.1", path = "../mfem-cpp", optional = true }
+
+[features]
+default = ["bundled"]
+bundled = ["mfem-cpp"]

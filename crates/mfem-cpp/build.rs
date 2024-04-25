@@ -8,5 +8,8 @@ fn main() {
         .define("INSTALL_DIR_INCLUDE", INCLUDE_DIR)
         .build();
 
-    println!("cargo:rustc-env=MFEM_PATH={}", dst.to_str().expect("path is valid Unicode"));
+    println!(
+        "cargo:rustc-env=MFEM_PATH={}",
+        dst.to_str().expect("path is valid Unicode")
+    );
 }
