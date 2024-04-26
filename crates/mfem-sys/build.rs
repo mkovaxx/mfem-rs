@@ -1,5 +1,5 @@
 /// The list of used MFEM libraries which needs to be linked with.
-const MFEM_LIBS: &[&str] = &["MFEM"];
+const MFEM_LIBS: &[&str] = &["mfem"];
 
 fn main() {
     let target = std::env::var("TARGET").expect("No TARGET environment variable defined");

@@ -19,3 +19,6 @@ semver = "1.0.22"
 [features]
 default = ["bundled"]
 bundled = ["mfem-cpp"]
+
+[dev-dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
