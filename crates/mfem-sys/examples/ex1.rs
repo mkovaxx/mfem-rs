@@ -22,7 +22,7 @@ fn main() {
     //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
     //    the same code.
     let_cxx_string!(mesh_file = args.mesh_file);
-    let mut mesh = Mesh_ctor_file(&mesh_file);
+    let mut mesh = Mesh_ctor_file(&mesh_file, 1, 1, true);
     let dim = Mesh_Dimension(&mesh);
 
     println!("mesh.GetNE(): {}", Mesh_GetNE(&mesh));

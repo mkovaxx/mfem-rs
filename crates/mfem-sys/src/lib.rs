@@ -15,7 +15,12 @@ pub mod ffi {
         pub fn Mesh_ctor() -> UniquePtr<Mesh>;
 
         #[cxx_name = "construct_unique"]
-        pub fn Mesh_ctor_file(filename: &CxxString) -> UniquePtr<Mesh>;
+        pub fn Mesh_ctor_file(
+            filename: &CxxString,
+            generate_edges: i32,
+            refine: i32,
+            fix_orientation: bool,
+        ) -> UniquePtr<Mesh>;
 
         #[cxx_name = "Mesh_Dimension"]
         pub fn Mesh_Dimension(mesh: &Mesh) -> i32;
