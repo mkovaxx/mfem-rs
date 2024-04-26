@@ -30,6 +30,14 @@ pub mod ffi {
 
         include!("mfem-sys/include/wrapper.hpp");
 
+        /////////////////////////////
+        // FiniteElementCollection //
+        /////////////////////////////
+
+        type FiniteElementCollection;
+
+        fn FiniteElementCollection_Name(fec: &FiniteElementCollection) -> *const c_char;
+
         /////////////////////
         // H1_FECollection //
         /////////////////////
@@ -63,5 +71,15 @@ pub mod ffi {
         fn Mesh_Dimension(mesh: &Mesh) -> i32;
         fn Mesh_GetNE(mesh: &Mesh) -> i32;
         fn Mesh_UniformRefinement(mesh: Pin<&mut Mesh>, ref_algo: i32);
+        fn Mesh_GetNodes(mesh: Pin<&mut Mesh>) -> *mut GridFunction;
+
+        //////////////////
+        // GridFunction //
+        //////////////////
+
+        type GridFunction;
+
+        unsafe fn GridFunction_OwnFEC(grid_func: *mut GridFunction)
+            -> *mut FiniteElementCollection;
     }
 }

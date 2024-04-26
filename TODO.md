@@ -9,10 +9,11 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Mesh::GetNE()
 - [x] Mesh::UniformRefinement()
 - [ ] Mesh::Print()
-- [ ] FiniteElementCollection
+- [x] FiniteElementCollection
+- [x] FiniteElementCollection::Name()
 - [x] H1_FECollection
-- [ ] Mesh::GetNodes()
-- [ ] GridFunction
+- [x] Mesh::GetNodes()
+- [x] GridFunction
 - [ ] FiniteElementSpace
 - [ ] FiniteElementSpace::GetTrueVSize()
 - [ ] FiniteElementSpace::GetEssentialTrueDofs()

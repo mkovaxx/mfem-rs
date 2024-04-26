@@ -1,8 +1,10 @@
+use std::ffi::CStr;
+
 use clap::Parser;
 use cxx::let_cxx_string;
 use mfem_sys::ffi::{
-    BasisType, H1_FECollection_ctor, Mesh_Dimension, Mesh_GetNE, Mesh_UniformRefinement,
-    Mesh_ctor_file,
+    BasisType, FiniteElementCollection_Name, GridFunction_OwnFEC, H1_FECollection_ctor,
+    Mesh_Dimension, Mesh_GetNE, Mesh_GetNodes, Mesh_UniformRefinement, Mesh_ctor_file,
 };
 
 #[derive(Parser)]
@@ -53,20 +55,21 @@ fn main() {
     //    Lagrange finite elements of the specified order. If order < 1, we
     //    instead use an isoparametric/isogeometric space.
     let fec = if args.order > 0 {
-        H1_FECollection_ctor(args.order, dim, BasisType::GaussLobatto.repr)
+        Ok(H1_FECollection_ctor(
+            args.order,
+            dim,
+            BasisType::GaussLobatto.repr,
+        ))
     } else {
-        // let nodes = Mesh_GetNodes(&mesh);
-        // if nodes {
-        //     let iso_fec = GridFunction_OwnFEC(&nodes);
-        //     println!(
-        //         "Using isoparametric FEs: {}",
-        //         FiniteElementCollection_Name(&iso_fec)
-        //     );
-        //     iso_fec
-        // } else {
-        //     H1_FECollection_ctor(1, dim)
-        // }
-        H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr)
+        let nodes = Mesh_GetNodes(mesh.pin_mut());
+        if !nodes.is_null() {
+            let iso_fec = unsafe { GridFunction_OwnFEC(nodes) };
+            let name = unsafe { CStr::from_ptr(FiniteElementCollection_Name(&*iso_fec)) };
+            println!("Using isoparametric FEs: {:?}", name);
+            Err(iso_fec)
+        } else {
+            Ok(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr))
+        }
     };
 
     // let fespace = FiniteElementSpace_ctor(&mesh, fec);

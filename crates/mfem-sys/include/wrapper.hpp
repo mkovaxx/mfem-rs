@@ -8,17 +8,19 @@ auto construct_unique(Args... args) -> std::unique_ptr<T> {
     return std::make_unique<T>(args...);
 }
 
-/////////////////////
-// H1_FECollection //
-/////////////////////
+using namespace mfem;
 
-using mfem::H1_FECollection;
+/////////////////////////////
+// FiniteElementCollection //
+/////////////////////////////
+
+auto FiniteElementCollection_Name(FiniteElementCollection const& fec) -> char const* {
+    return fec.Name();
+}
 
 //////////
 // Mesh //
 //////////
-
-using mfem::Mesh;
 
 auto Mesh_Dimension(Mesh const& mesh) -> int {
     return mesh.Dimension();
@@ -30,4 +32,16 @@ auto Mesh_GetNE(Mesh const& mesh) -> int {
 
 auto Mesh_UniformRefinement(Mesh& mesh, int ref_algo) -> void {
     mesh.UniformRefinement(ref_algo);
+}
+
+auto Mesh_GetNodes(Mesh& mesh) -> GridFunction* {
+    return mesh.GetNodes();
+}
+
+//////////////////
+// GridFunction //
+//////////////////
+
+auto GridFunction_OwnFEC(GridFunction* grid_func) -> FiniteElementCollection* {
+    return grid_func->OwnFEC();
 }
