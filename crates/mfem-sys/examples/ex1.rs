@@ -1,13 +1,20 @@
 use clap::Parser;
 use cxx::let_cxx_string;
-use mfem_sys::ffi::{Mesh_Dimension, Mesh_GetNE, Mesh_UniformRefinement, Mesh_ctor_file};
+use mfem_sys::ffi::{
+    BasisType, H1_FECollection_ctor, Mesh_Dimension, Mesh_GetNE, Mesh_UniformRefinement,
+    Mesh_ctor_file,
+};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Mesh file to use
+    /// Mesh file to use.
     #[arg(short, long = "mesh", value_name = "FILE")]
     mesh_file: String,
+
+    /// Finite element order (polynomial degree) or -1 for isoparametric space.
+    #[arg(short, long, default_value_t = 1)]
+    order: i32,
 }
 
 fn main() {
@@ -41,4 +48,30 @@ fn main() {
     }
 
     println!("mesh.GetNE(): {}", Mesh_GetNE(&mesh));
+
+    // 5. Define a finite element space on the mesh. Here we use continuous
+    //    Lagrange finite elements of the specified order. If order < 1, we
+    //    instead use an isoparametric/isogeometric space.
+    let fec = if args.order > 0 {
+        H1_FECollection_ctor(args.order, dim, BasisType::GaussLobatto.repr)
+    } else {
+        // let nodes = Mesh_GetNodes(&mesh);
+        // if nodes {
+        //     let iso_fec = GridFunction_OwnFEC(&nodes);
+        //     println!(
+        //         "Using isoparametric FEs: {}",
+        //         FiniteElementCollection_Name(&iso_fec)
+        //     );
+        //     iso_fec
+        // } else {
+        //     H1_FECollection_ctor(1, dim)
+        // }
+        H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr)
+    };
+
+    // let fespace = FiniteElementSpace_ctor(&mesh, fec);
+    // println!(
+    //     "Number of finite element unknowns: {}",
+    //     FESpace_GetTrueVSize(&fespace)
+    // );
 }

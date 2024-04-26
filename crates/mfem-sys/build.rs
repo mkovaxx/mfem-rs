@@ -30,7 +30,8 @@ fn main() {
 
     build
         .cpp(true)
-        .flag_if_supported("-std=c++11")
+        .std("c++14")
+        .flag_if_supported("-w")
         .include(mfem_config.include_dir)
         .include("include")
         .compile("wrapper");

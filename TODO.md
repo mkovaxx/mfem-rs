@@ -10,7 +10,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Mesh::UniformRefinement()
 - [ ] Mesh::Print()
 - [ ] FiniteElementCollection
-- [ ] H1_FECollection
+- [x] H1_FECollection
 - [ ] Mesh::GetNodes()
 - [ ] GridFunction
 - [ ] FiniteElementSpace
