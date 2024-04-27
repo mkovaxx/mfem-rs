@@ -61,7 +61,7 @@ pub mod ffi {
             btype: /*BasisType*/ i32,
         ) -> UniquePtr<H1_FECollection>;
 
-        fn H1_FECollection_as_fec(h1_fec: &H1_FECollection) -> *const FiniteElementCollection;
+        fn H1_FECollection_as_fec(h1_fec: &H1_FECollection) -> &FiniteElementCollection;
 
         //////////
         // Mesh //

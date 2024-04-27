@@ -22,8 +22,8 @@ auto FiniteElementCollection_Name(FiniteElementCollection const& fec) -> char co
 // H1_FECollection //
 /////////////////////
 
-auto H1_FECollection_as_fec(H1_FECollection const& h1_fec) -> FiniteElementCollection const* {
-    return &h1_fec;
+auto H1_FECollection_as_fec(H1_FECollection const& h1_fec) -> FiniteElementCollection const& {
+    return h1_fec;
 }
 
 //////////

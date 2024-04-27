@@ -66,13 +66,8 @@ fn main() {
         owned_fec = Some(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr));
     }
 
-    // NOTE(mkovaxx): Important to borrow here, otherwise owned_fec gets dropped
     let fec = match &owned_fec {
-        Some(ptr) => unsafe {
-            H1_FECollection_as_fec(&ptr)
-                .as_ref()
-                .expect("H1_FEC pointer is valid")
-        },
+        Some(ptr) => H1_FECollection_as_fec(&ptr),
         None => unsafe {
             println!("Using isoparametric FEs");
             let nodes = Mesh_GetNodes(&mesh)
