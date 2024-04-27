@@ -68,12 +68,12 @@ fn main() {
 
     let fec = match &owned_fec {
         Some(ptr) => H1_FECollection_as_fec(&ptr),
-        None => unsafe {
+        None => {
             println!("Using isoparametric FEs");
             let nodes = Mesh_GetNodes(&mesh).expect("Mesh has its own nodes");
-            let iso_fec = GridFunction_OwnFEC(nodes).as_ref().expect("OwnFEC exists");
+            let iso_fec = GridFunction_OwnFEC(nodes).expect("OwnFEC exists");
             iso_fec
-        },
+        }
     };
 
     unsafe {
@@ -83,7 +83,7 @@ fn main() {
         dbg!(fec_name);
     }
 
-    let fespace = FiniteElementSpace_ctor(mesh.pin_mut(), fec, 1, OrderingType::byNODES);
+    let fespace = FiniteElementSpace_ctor(&mesh, fec, 1, OrderingType::byNODES);
     // println!(
     //     "Number of finite element unknowns: {}",
     //     FESpace_GetTrueVSize(&fespace)

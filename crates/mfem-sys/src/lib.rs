@@ -94,7 +94,7 @@ pub mod ffi {
         type FiniteElementSpace<'mesh, 'fec>;
 
         fn FiniteElementSpace_ctor<'mesh, 'fec>(
-            mesh: Pin<&'mesh mut Mesh>,
+            mesh: &'mesh Mesh,
             fec: &'fec FiniteElementCollection,
             vdim: i32,
             ordering: OrderingType,
@@ -106,6 +106,6 @@ pub mod ffi {
 
         type GridFunction;
 
-        fn GridFunction_OwnFEC(grid_func: &GridFunction) -> *const FiniteElementCollection;
+        fn GridFunction_OwnFEC(grid_func: &GridFunction) -> Result<&FiniteElementCollection>;
     }
 }

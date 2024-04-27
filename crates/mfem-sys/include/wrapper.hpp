@@ -72,7 +72,7 @@ auto Mesh_UniformRefinement(Mesh& mesh, int ref_algo) -> void {
 auto Mesh_GetNodes(Mesh const& mesh) -> GridFunction const& {
     auto ptr = mesh.GetNodes();
     if (!ptr) {
-        throw mfem_exception("mesh.GetNodes() == nullptr");
+        throw mfem_exception("Mesh::GetNodes() == nullptr");
     }
     return *ptr;
 }
@@ -83,14 +83,20 @@ auto Mesh_GetNodes(Mesh const& mesh) -> GridFunction const& {
 
 using OrderingType = Ordering::Type;
 
-auto FiniteElementSpace_ctor(Mesh& mesh, FiniteElementCollection const& fec, int vdim, OrderingType ordering) -> std::unique_ptr<FiniteElementSpace> {
-    return std::make_unique<FiniteElementSpace>(&mesh, &fec, vdim, ordering);
+auto FiniteElementSpace_ctor(Mesh const& mesh, FiniteElementCollection const& fec, int vdim, OrderingType ordering) -> std::unique_ptr<FiniteElementSpace> {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_mesh = const_cast<Mesh&>(mesh);
+    return std::make_unique<FiniteElementSpace>(&mut_mesh, &fec, vdim, ordering);
 }
 
 //////////////////
 // GridFunction //
 //////////////////
 
-auto GridFunction_OwnFEC(GridFunction const& grid_func) -> FiniteElementCollection const* {
-    return const_cast<GridFunction&>(grid_func).OwnFEC();
+auto GridFunction_OwnFEC(GridFunction const& grid_func) -> FiniteElementCollection const& {
+    auto ptr = const_cast<GridFunction&>(grid_func).OwnFEC();
+    if (!ptr) {
+        throw mfem_exception("GridFunction::OwnFEC() == nullptr");
+    }
+    return *ptr;
 }
