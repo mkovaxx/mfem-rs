@@ -40,6 +40,22 @@ pub mod ffi {
 
         include!("mfem-sys/include/wrapper.hpp");
 
+        //////////////
+        // ArrayInt //
+        //////////////
+
+        type ArrayInt;
+
+        #[cxx_name = "construct_unique"]
+        fn ArrayInt_ctor() -> UniquePtr<ArrayInt>;
+
+        #[cxx_name = "construct_unique"]
+        fn ArrayInt_ctor_size(asize: i32) -> UniquePtr<ArrayInt>;
+
+        fn Size(self: &ArrayInt) -> i32;
+        fn Max(self: &ArrayInt) -> i32;
+        fn ArrayInt_SetAll(array: Pin<&mut ArrayInt>, value: i32);
+
         /////////////////////////////
         // FiniteElementCollection //
         /////////////////////////////
@@ -84,6 +100,7 @@ pub mod ffi {
         fn GetNE(self: &Mesh) -> i32;
         fn UniformRefinement(self: Pin<&mut Mesh>, ref_algo: i32);
         fn Mesh_GetNodes(mesh: &Mesh) -> Result<&GridFunction>;
+        fn Mesh_bdr_attributes(mesh: &Mesh) -> &ArrayInt;
 
         ////////////////////////
         // FiniteElementSpace //
@@ -101,6 +118,14 @@ pub mod ffi {
         ) -> UniquePtr<FiniteElementSpace<'mesh, 'fec>>;
 
         fn GetTrueVSize(self: &FiniteElementSpace) -> i32;
+
+        // This shim is needed because FiniteElementSpace::GetEssentialTrueDofs() isn't const
+        fn FiniteElementSpace_GetEssentialTrueDofs(
+            fespace: &FiniteElementSpace,
+            bdr_attr_is_ess: &ArrayInt,
+            ess_tdof_list: Pin<&mut ArrayInt>,
+            component: i32,
+        );
 
         //////////////////
         // GridFunction //

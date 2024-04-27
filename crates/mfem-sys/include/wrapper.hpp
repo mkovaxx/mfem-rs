@@ -37,6 +37,16 @@ auto construct_unique(Args... args) -> std::unique_ptr<T> {
 
 using namespace mfem;
 
+//////////////
+// ArrayInt //
+//////////////
+
+using ArrayInt = Array<int>;
+
+auto ArrayInt_SetAll(ArrayInt& array, int value) -> void {
+    array = value;
+}
+
 /////////////////////
 // H1_FECollection //
 /////////////////////
@@ -57,6 +67,10 @@ auto Mesh_GetNodes(Mesh const& mesh) -> GridFunction const& {
     return *ptr;
 }
 
+auto Mesh_bdr_attributes(Mesh const& mesh) -> ArrayInt const& {
+    return mesh.bdr_attributes;
+}
+
 ////////////////////////
 // FiniteElementSpace //
 ////////////////////////
@@ -67,6 +81,17 @@ auto FiniteElementSpace_ctor(Mesh const& mesh, FiniteElementCollection const& fe
     // HACK(mkovaxx): This might come back to bite me...
     auto& mut_mesh = const_cast<Mesh&>(mesh);
     return std::make_unique<FiniteElementSpace>(&mut_mesh, &fec, vdim, ordering);
+}
+
+auto FiniteElementSpace_GetEssentialTrueDofs(
+    FiniteElementSpace const& fespace,
+    ArrayInt const& bdr_attr_is_ess,
+    ArrayInt& ess_tdof_list,
+    int component
+) -> void {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_fespace = const_cast<FiniteElementSpace&>(fespace);
+    mut_fespace.GetEssentialTrueDofs(bdr_attr_is_ess, ess_tdof_list, component);
 }
 
 //////////////////

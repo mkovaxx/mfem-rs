@@ -3,8 +3,10 @@ use std::ffi::CStr;
 use clap::Parser;
 use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
-    BasisType, FiniteElementSpace_ctor, GridFunction_OwnFEC, H1_FECollection,
-    H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_GetNodes, Mesh_ctor_file, OrderingType,
+    ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType,
+    FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GridFunction_OwnFEC,
+    H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_GetNodes,
+    Mesh_bdr_attributes, Mesh_ctor_file, OrderingType,
 };
 
 #[derive(Parser)]
@@ -86,4 +88,11 @@ fn main() {
         "Number of finite element unknowns: {}",
         fespace.GetTrueVSize(),
     );
+
+    let mut ess_tdof_list = ArrayInt_ctor();
+    if Mesh_bdr_attributes(&mesh).Size() > 0 {
+        let mut ess_bdr = ArrayInt_ctor_size(Mesh_bdr_attributes(&mesh).Max());
+        ArrayInt_SetAll(ess_bdr.pin_mut(), 1);
+        FiniteElementSpace_GetEssentialTrueDofs(&fespace, &ess_bdr, ess_tdof_list.pin_mut(), -1);
+    }
 }

@@ -8,6 +8,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Mesh::Dimension()
 - [x] Mesh::GetNE()
 - [x] Mesh::UniformRefinement()
+- [x] Mesh::bdr_attributes
 - [ ] Mesh::Print()
 - [x] FiniteElementCollection
 - [x] FiniteElementCollection::Name()
@@ -16,8 +17,11 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] GridFunction
 - [x] FiniteElementSpace
 - [x] FiniteElementSpace::GetTrueVSize()
-- [ ] FiniteElementSpace::GetEssentialTrueDofs()
-- [ ] Array<int>
+- [x] FiniteElementSpace::GetEssentialTrueDofs()
+- [x] Array<int>
+- [x] Array<int>::Size()
+- [x] Array<int>::Max()
+- [x] Array<int>::SetAll()
 - [ ] LinearForm
 - [ ] LinearForm::AddDomainIntegrator()
 - [ ] LinearForm::Assemble()
