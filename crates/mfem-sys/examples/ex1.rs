@@ -1,7 +1,4 @@
-use std::{
-    ffi::CStr,
-    pin::{pin, Pin},
-};
+use std::{ffi::CStr, pin::Pin};
 
 use clap::Parser;
 use cxx::let_cxx_string;
@@ -37,7 +34,7 @@ fn main() {
     let mut mesh = Mesh_ctor_file(&mesh_file, 1, 1, true);
     let dim = Mesh_Dimension(&mesh);
 
-    println!("mesh.GetNE(): {}", Mesh_GetNE(&mesh));
+    dbg!(Mesh_GetNE(&mesh));
 
     // 4. Refine the mesh to increase the resolution. In this example we do
     //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
@@ -52,7 +49,7 @@ fn main() {
         }
     }
 
-    println!("mesh.GetNE(): {}", Mesh_GetNE(&mesh));
+    dbg!(Mesh_GetNE(&mesh));
 
     // 5. Define a finite element space on the mesh. Here we use continuous
     //    Lagrange finite elements of the specified order. If order < 1, we
