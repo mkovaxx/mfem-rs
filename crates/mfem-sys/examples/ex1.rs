@@ -3,9 +3,9 @@ use std::ffi::CStr;
 use clap::Parser;
 use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
-    BasisType, FiniteElementCollection_Name, FiniteElementSpace_ctor, GridFunction_OwnFEC,
-    H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_Dimension, Mesh_GetNE,
-    Mesh_GetNodes, Mesh_UniformRefinement, Mesh_ctor_file, OrderingType,
+    BasisType, FiniteElementSpace_ctor, GridFunction_OwnFEC, H1_FECollection,
+    H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_GetNodes, Mesh_UniformRefinement,
+    Mesh_ctor_file, OrderingType,
 };
 
 #[derive(Parser)]
@@ -33,24 +33,23 @@ fn main() {
     //    the same code.
     let_cxx_string!(mesh_file = args.mesh_file);
     let mut mesh = Mesh_ctor_file(&mesh_file, 1, 1, true);
-    let dim = Mesh_Dimension(&mesh);
+    let dim = mesh.Dimension();
 
-    dbg!(Mesh_GetNE(&mesh));
+    dbg!(mesh.GetNE());
 
     // 4. Refine the mesh to increase the resolution. In this example we do
     //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
     //    largest number that gives a final mesh with no more than 50,000
     //    elements.
     {
-        let ref_levels =
-            f64::floor(f64::log2(50000.0 / Mesh_GetNE(&mesh) as f64) / dim as f64) as u32;
+        let ref_levels = f64::floor(f64::log2(50000.0 / mesh.GetNE() as f64) / dim as f64) as u32;
 
         for _ in 0..ref_levels {
             Mesh_UniformRefinement(mesh.pin_mut(), 0);
         }
     }
 
-    dbg!(Mesh_GetNE(&mesh));
+    dbg!(mesh.GetNE());
 
     // 5. Define a finite element space on the mesh. Here we use continuous
     //    Lagrange finite elements of the specified order. If order < 1, we
@@ -77,7 +76,7 @@ fn main() {
     };
 
     unsafe {
-        let name_ptr = FiniteElementCollection_Name(fec);
+        let name_ptr = fec.Name();
         assert!(!name_ptr.is_null());
         let fec_name = CStr::from_ptr(name_ptr);
         dbg!(fec_name);

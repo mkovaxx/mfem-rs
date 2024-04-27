@@ -46,7 +46,7 @@ pub mod ffi {
 
         type FiniteElementCollection;
 
-        fn FiniteElementCollection_Name(fec: &FiniteElementCollection) -> *const c_char;
+        fn Name(self: &FiniteElementCollection) -> *const c_char;
 
         /////////////////////
         // H1_FECollection //
@@ -80,8 +80,8 @@ pub mod ffi {
             fix_orientation: bool,
         ) -> UniquePtr<Mesh>;
 
-        fn Mesh_Dimension(mesh: &Mesh) -> i32;
-        fn Mesh_GetNE(mesh: &Mesh) -> i32;
+        fn Dimension(self: &Mesh) -> i32;
+        fn GetNE(self: &Mesh) -> i32;
         fn Mesh_UniformRefinement(mesh: Pin<&mut Mesh>, ref_algo: i32);
         fn Mesh_GetNodes(mesh: &Mesh) -> Result<&GridFunction>;
 
