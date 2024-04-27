@@ -1,5 +1,32 @@
 #include "rust/cxx.h"
 
+///////////////////////////////////////////
+// Error Handler for Returning Result<T> //
+///////////////////////////////////////////
+
+class mfem_exception : public std::exception {
+    std::string msg_;
+
+public:
+    explicit mfem_exception(char const* msg) : msg_(msg) {}
+    auto what() const noexcept -> char const* override {
+        return msg_.c_str();
+    }
+};
+
+namespace rust {
+namespace behavior {
+
+template <typename Try, typename Fail>
+static void trycatch(Try &&func, Fail &&fail) noexcept try {
+  func();
+} catch (const std::exception &e) {
+  fail(e.what());
+}
+
+} // namespace behavior
+} // namespace rust
+
 #include "mfem.hpp"
 
 // Generic template constructor
@@ -42,8 +69,12 @@ auto Mesh_UniformRefinement(Mesh& mesh, int ref_algo) -> void {
     mesh.UniformRefinement(ref_algo);
 }
 
-auto Mesh_GetNodes(Mesh const& mesh) -> GridFunction const* {
-    return mesh.GetNodes();
+auto Mesh_GetNodes(Mesh const& mesh) -> GridFunction const& {
+    auto ptr = mesh.GetNodes();
+    if (!ptr) {
+        throw mfem_exception("mesh.GetNodes() == nullptr");
+    }
+    return *ptr;
 }
 
 ////////////////////////

@@ -83,7 +83,7 @@ pub mod ffi {
         fn Mesh_Dimension(mesh: &Mesh) -> i32;
         fn Mesh_GetNE(mesh: &Mesh) -> i32;
         fn Mesh_UniformRefinement(mesh: Pin<&mut Mesh>, ref_algo: i32);
-        fn Mesh_GetNodes(mesh: &Mesh) -> *const GridFunction;
+        fn Mesh_GetNodes(mesh: &Mesh) -> Result<&GridFunction>;
 
         ////////////////////////
         // FiniteElementSpace //

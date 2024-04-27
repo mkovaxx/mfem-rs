@@ -62,7 +62,7 @@ fn main() {
             dim,
             BasisType::GaussLobatto.repr,
         ));
-    } else if Mesh_GetNodes(&mesh).is_null() {
+    } else if Mesh_GetNodes(&mesh).is_err() {
         owned_fec = Some(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr));
     }
 
@@ -70,9 +70,7 @@ fn main() {
         Some(ptr) => H1_FECollection_as_fec(&ptr),
         None => unsafe {
             println!("Using isoparametric FEs");
-            let nodes = Mesh_GetNodes(&mesh)
-                .as_ref()
-                .expect("Mesh has its own nodes");
+            let nodes = Mesh_GetNodes(&mesh).expect("Mesh has its own nodes");
             let iso_fec = GridFunction_OwnFEC(nodes).as_ref().expect("OwnFEC exists");
             iso_fec
         },
