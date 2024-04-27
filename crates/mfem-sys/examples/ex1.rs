@@ -1,4 +1,7 @@
-use std::ffi::CStr;
+use std::{
+    ffi::CStr,
+    pin::{pin, Pin},
+};
 
 use clap::Parser;
 use cxx::let_cxx_string;
@@ -61,10 +64,13 @@ fn main() {
             BasisType::GaussLobatto.repr,
         ))
     } else {
-        let nodes = Mesh_GetNodes(mesh.pin_mut());
-        if !nodes.is_null() {
-            let iso_fec = unsafe { GridFunction_OwnFEC(nodes) };
-            let name = unsafe { CStr::from_ptr(FiniteElementCollection_Name(&*iso_fec)) };
+        if let Some(nodes) = unsafe { Mesh_GetNodes(mesh.pin_mut()).as_mut() } {
+            let iso_fec = unsafe {
+                GridFunction_OwnFEC(Pin::new_unchecked(nodes))
+                    .as_mut()
+                    .expect("OwnFEC exists")
+            };
+            let name = unsafe { CStr::from_ptr(FiniteElementCollection_Name(iso_fec)) };
             println!("Using isoparametric FEs: {:?}", name);
             Err(iso_fec)
         } else {

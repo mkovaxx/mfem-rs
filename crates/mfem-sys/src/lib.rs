@@ -51,6 +51,10 @@ pub mod ffi {
             btype: /*BasisType*/ i32,
         ) -> UniquePtr<H1_FECollection>;
 
+        fn H1_FECollection_as_fec(
+            h1_fec: Pin<&mut H1_FECollection>,
+        ) -> *mut FiniteElementCollection;
+
         //////////
         // Mesh //
         //////////
@@ -79,7 +83,6 @@ pub mod ffi {
 
         type GridFunction;
 
-        unsafe fn GridFunction_OwnFEC(grid_func: *mut GridFunction)
-            -> *mut FiniteElementCollection;
+        fn GridFunction_OwnFEC(grid_func: Pin<&mut GridFunction>) -> *mut FiniteElementCollection;
     }
 }
