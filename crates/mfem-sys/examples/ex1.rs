@@ -55,16 +55,17 @@ fn main() {
     // 5. Define a finite element space on the mesh. Here we use continuous
     //    Lagrange finite elements of the specified order. If order < 1, we
     //    instead use an isoparametric/isogeometric space.
-    let mut owned_fec: Option<UniquePtr<H1_FECollection>> = None;
-    if args.order > 0 {
-        owned_fec = Some(H1_FECollection_ctor(
+    let owned_fec: Option<UniquePtr<H1_FECollection>> = if args.order > 0 {
+        Some(H1_FECollection_ctor(
             args.order,
             dim,
             BasisType::GaussLobatto.repr,
-        ));
+        ))
     } else if Mesh_GetNodes(&mesh).is_err() {
-        owned_fec = Some(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr));
-    }
+        Some(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr))
+    } else {
+        None
+    };
 
     let fec = match &owned_fec {
         Some(ptr) => H1_FECollection_as_fec(&ptr),
