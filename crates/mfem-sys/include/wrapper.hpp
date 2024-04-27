@@ -22,7 +22,7 @@ auto FiniteElementCollection_Name(FiniteElementCollection const& fec) -> char co
 // H1_FECollection //
 /////////////////////
 
-auto H1_FECollection_as_fec(H1_FECollection& h1_fec) -> FiniteElementCollection* {
+auto H1_FECollection_as_fec(H1_FECollection const& h1_fec) -> FiniteElementCollection const* {
     return &h1_fec;
 }
 
@@ -42,14 +42,24 @@ auto Mesh_UniformRefinement(Mesh& mesh, int ref_algo) -> void {
     mesh.UniformRefinement(ref_algo);
 }
 
-auto Mesh_GetNodes(Mesh& mesh) -> GridFunction* {
+auto Mesh_GetNodes(Mesh const& mesh) -> GridFunction const* {
     return mesh.GetNodes();
+}
+
+////////////////////////
+// FiniteElementSpace //
+////////////////////////
+
+using OrderingType = Ordering::Type;
+
+auto FiniteElementSpace_ctor(Mesh& mesh, FiniteElementCollection const& fec, int vdim, OrderingType ordering) -> std::unique_ptr<FiniteElementSpace> {
+    return std::make_unique<FiniteElementSpace>(&mesh, &fec, vdim, ordering);
 }
 
 //////////////////
 // GridFunction //
 //////////////////
 
-auto GridFunction_OwnFEC(GridFunction& grid_func) -> FiniteElementCollection* {
-    return grid_func.OwnFEC();
+auto GridFunction_OwnFEC(GridFunction const& grid_func) -> FiniteElementCollection const* {
+    return const_cast<GridFunction&>(grid_func).OwnFEC();
 }

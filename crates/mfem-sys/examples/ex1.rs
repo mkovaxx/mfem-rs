@@ -1,10 +1,11 @@
-use std::{ffi::CStr, pin::Pin};
+use std::ffi::CStr;
 
 use clap::Parser;
-use cxx::let_cxx_string;
+use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
-    BasisType, FiniteElementCollection_Name, GridFunction_OwnFEC, H1_FECollection_ctor,
-    Mesh_Dimension, Mesh_GetNE, Mesh_GetNodes, Mesh_UniformRefinement, Mesh_ctor_file,
+    BasisType, FiniteElementCollection_Name, FiniteElementSpace_ctor, GridFunction_OwnFEC,
+    H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_Dimension, Mesh_GetNE,
+    Mesh_GetNodes, Mesh_UniformRefinement, Mesh_ctor_file, OrderingType,
 };
 
 #[derive(Parser)]
@@ -54,28 +55,42 @@ fn main() {
     // 5. Define a finite element space on the mesh. Here we use continuous
     //    Lagrange finite elements of the specified order. If order < 1, we
     //    instead use an isoparametric/isogeometric space.
-    let fec = if args.order > 0 {
-        Ok(H1_FECollection_ctor(
+    let mut owned_fec: Option<UniquePtr<H1_FECollection>> = None;
+    if args.order > 0 {
+        owned_fec = Some(H1_FECollection_ctor(
             args.order,
             dim,
             BasisType::GaussLobatto.repr,
-        ))
-    } else {
-        if let Some(nodes) = unsafe { Mesh_GetNodes(mesh.pin_mut()).as_mut() } {
-            let iso_fec = unsafe {
-                GridFunction_OwnFEC(Pin::new_unchecked(nodes))
-                    .as_mut()
-                    .expect("OwnFEC exists")
-            };
-            let name = unsafe { CStr::from_ptr(FiniteElementCollection_Name(iso_fec)) };
-            println!("Using isoparametric FEs: {:?}", name);
-            Err(iso_fec)
-        } else {
-            Ok(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr))
-        }
+        ));
+    } else if Mesh_GetNodes(&mesh).is_null() {
+        owned_fec = Some(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr));
+    }
+
+    // NOTE(mkovaxx): Important to borrow here, otherwise owned_fec gets dropped
+    let fec = match &owned_fec {
+        Some(ptr) => unsafe {
+            H1_FECollection_as_fec(&ptr)
+                .as_ref()
+                .expect("H1_FEC pointer is valid")
+        },
+        None => unsafe {
+            println!("Using isoparametric FEs");
+            let nodes = Mesh_GetNodes(&mesh)
+                .as_ref()
+                .expect("Mesh has its own nodes");
+            let iso_fec = GridFunction_OwnFEC(nodes).as_ref().expect("OwnFEC exists");
+            iso_fec
+        },
     };
 
-    // let fespace = FiniteElementSpace_ctor(&mesh, fec);
+    unsafe {
+        let name_ptr = FiniteElementCollection_Name(fec);
+        assert!(!name_ptr.is_null());
+        let fec_name = CStr::from_ptr(name_ptr);
+        dbg!(fec_name);
+    }
+
+    let fespace = FiniteElementSpace_ctor(mesh.pin_mut(), fec, 1, OrderingType::byNODES);
     // println!(
     //     "Number of finite element unknowns: {}",
     //     FESpace_GetTrueVSize(&fespace)

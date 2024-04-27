@@ -25,6 +25,16 @@ pub mod ffi {
         NumBasisTypes = 9,
     }
 
+    #[repr(i32)]
+    enum OrderingType {
+        /// loop first over the nodes (inner loop) then over the vector dimension (outer loop)
+        /// symbolically it can be represented as: XXX...,YYY...,ZZZ...
+        byNODES,
+        /// loop first over the vector dimension (inner loop) then over the nodes (outer loop)
+        /// symbolically it can be represented as: XYZ,XYZ,XYZ,...
+        byVDIM,
+    }
+
     unsafe extern "C++" {
         // https://github.com/dtolnay/cxx/issues/280
 
@@ -51,9 +61,7 @@ pub mod ffi {
             btype: /*BasisType*/ i32,
         ) -> UniquePtr<H1_FECollection>;
 
-        fn H1_FECollection_as_fec(
-            h1_fec: Pin<&mut H1_FECollection>,
-        ) -> *mut FiniteElementCollection;
+        fn H1_FECollection_as_fec(h1_fec: &H1_FECollection) -> *const FiniteElementCollection;
 
         //////////
         // Mesh //
@@ -75,7 +83,22 @@ pub mod ffi {
         fn Mesh_Dimension(mesh: &Mesh) -> i32;
         fn Mesh_GetNE(mesh: &Mesh) -> i32;
         fn Mesh_UniformRefinement(mesh: Pin<&mut Mesh>, ref_algo: i32);
-        fn Mesh_GetNodes(mesh: Pin<&mut Mesh>) -> *mut GridFunction;
+        fn Mesh_GetNodes(mesh: &Mesh) -> *const GridFunction;
+
+        ////////////////////////
+        // FiniteElementSpace //
+        ////////////////////////
+
+        type OrderingType;
+
+        type FiniteElementSpace<'mesh, 'fec>;
+
+        fn FiniteElementSpace_ctor<'mesh, 'fec>(
+            mesh: Pin<&'mesh mut Mesh>,
+            fec: &'fec FiniteElementCollection,
+            vdim: i32,
+            ordering: OrderingType,
+        ) -> UniquePtr<FiniteElementSpace<'mesh, 'fec>>;
 
         //////////////////
         // GridFunction //
@@ -83,6 +106,6 @@ pub mod ffi {
 
         type GridFunction;
 
-        fn GridFunction_OwnFEC(grid_func: Pin<&mut GridFunction>) -> *mut FiniteElementCollection;
+        fn GridFunction_OwnFEC(grid_func: &GridFunction) -> *const FiniteElementCollection;
     }
 }
