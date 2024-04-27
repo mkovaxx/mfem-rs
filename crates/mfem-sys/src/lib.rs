@@ -100,6 +100,8 @@ pub mod ffi {
             ordering: OrderingType,
         ) -> UniquePtr<FiniteElementSpace<'mesh, 'fec>>;
 
+        fn GetTrueVSize(self: &FiniteElementSpace) -> i32;
+
         //////////////////
         // GridFunction //
         //////////////////

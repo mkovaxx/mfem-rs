@@ -15,7 +15,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Mesh::GetNodes()
 - [x] GridFunction
 - [x] FiniteElementSpace
-- [ ] FiniteElementSpace::GetTrueVSize()
+- [x] FiniteElementSpace::GetTrueVSize()
 - [ ] FiniteElementSpace::GetEssentialTrueDofs()
 - [ ] Array<int>
 - [ ] LinearForm

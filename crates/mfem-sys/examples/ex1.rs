@@ -84,8 +84,8 @@ fn main() {
     }
 
     let fespace = FiniteElementSpace_ctor(&mesh, fec, 1, OrderingType::byNODES);
-    // println!(
-    //     "Number of finite element unknowns: {}",
-    //     FESpace_GetTrueVSize(&fespace)
-    // );
+    println!(
+        "Number of finite element unknowns: {}",
+        fespace.GetTrueVSize(),
+    );
 }
