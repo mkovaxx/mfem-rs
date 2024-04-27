@@ -4,8 +4,7 @@ use clap::Parser;
 use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
     BasisType, FiniteElementSpace_ctor, GridFunction_OwnFEC, H1_FECollection,
-    H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_GetNodes, Mesh_UniformRefinement,
-    Mesh_ctor_file, OrderingType,
+    H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_GetNodes, Mesh_ctor_file, OrderingType,
 };
 
 #[derive(Parser)]
@@ -45,7 +44,7 @@ fn main() {
         let ref_levels = f64::floor(f64::log2(50000.0 / mesh.GetNE() as f64) / dim as f64) as u32;
 
         for _ in 0..ref_levels {
-            Mesh_UniformRefinement(mesh.pin_mut(), 0);
+            mesh.pin_mut().UniformRefinement(0);
         }
     }
 

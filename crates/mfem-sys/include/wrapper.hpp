@@ -49,10 +49,6 @@ auto H1_FECollection_as_fec(H1_FECollection const& h1_fec) -> FiniteElementColle
 // Mesh //
 //////////
 
-auto Mesh_UniformRefinement(Mesh& mesh, int ref_algo) -> void {
-    mesh.UniformRefinement(ref_algo);
-}
-
 auto Mesh_GetNodes(Mesh const& mesh) -> GridFunction const& {
     auto ptr = mesh.GetNodes();
     if (!ptr) {

@@ -82,7 +82,7 @@ pub mod ffi {
 
         fn Dimension(self: &Mesh) -> i32;
         fn GetNE(self: &Mesh) -> i32;
-        fn Mesh_UniformRefinement(mesh: Pin<&mut Mesh>, ref_algo: i32);
+        fn UniformRefinement(self: Pin<&mut Mesh>, ref_algo: i32);
         fn Mesh_GetNodes(mesh: &Mesh) -> Result<&GridFunction>;
 
         ////////////////////////
