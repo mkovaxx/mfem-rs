@@ -143,6 +143,11 @@ pub mod ffi {
 
         fn LinearForm_ctor_fes<'a>(fespace: &'a FiniteElementSpace) -> UniquePtr<LinearForm<'a>>;
 
+        fn LinearForm_AddDomainIntegrator(
+            lf: Pin<&mut LinearForm>,
+            lfi: UniquePtr<LinearFormIntegrator>,
+        );
+
         fn Assemble(self: Pin<&mut LinearForm>);
 
         /////////////////
@@ -162,6 +167,12 @@ pub mod ffi {
 
         fn ConstantCoefficient_as_coeff(coeff: &ConstantCoefficient) -> &Coefficient;
 
+        //////////////////////////
+        // LinearFormIntegrator //
+        //////////////////////////
+
+        type LinearFormIntegrator<'a>;
+
         ////////////////////////
         // DomainLFIntegrator //
         ////////////////////////
@@ -173,5 +184,9 @@ pub mod ffi {
             a: i32,
             b: i32,
         ) -> UniquePtr<DomainLFIntegrator<'a>>;
+
+        fn DomainLFIntegrator_into_lfi<'a>(
+            domain_lfi: UniquePtr<DomainLFIntegrator<'a>>,
+        ) -> UniquePtr<LinearFormIntegrator<'a>>;
     }
 }

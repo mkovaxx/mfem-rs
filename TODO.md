@@ -23,7 +23,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Array<int>::Max()
 - [x] Array<int>::SetAll()
 - [x] LinearForm
-- [ ] LinearForm::AddDomainIntegrator()
+- [x] LinearForm::AddDomainIntegrator()
 - [x] LinearForm::Assemble()
 - [x] ConstantCoefficient
 - [x] DomainLFIntegrator
