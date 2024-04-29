@@ -115,3 +115,21 @@ auto LinearForm_ctor_fes(FiniteElementSpace const& fespace) -> std::unique_ptr<L
     auto& mut_fespace = const_cast<FiniteElementSpace&>(fespace);
     return std::make_unique<LinearForm>(&mut_fespace);
 }
+
+/////////////////////////
+// ConstantCoefficient //
+/////////////////////////
+
+auto ConstantCoefficient_as_coeff(ConstantCoefficient const& coeff) -> Coefficient const& {
+    return coeff;
+}
+
+////////////////////////
+// DomainLFIntegrator //
+////////////////////////
+
+auto DomainLFIntegrator_ctor_ab(Coefficient const& coeff, int a, int b) -> std::unique_ptr<DomainLFIntegrator> {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_coeff = const_cast<Coefficient&>(coeff);
+    return std::make_unique<DomainLFIntegrator>(mut_coeff, a, b);
+}

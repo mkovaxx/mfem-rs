@@ -3,10 +3,11 @@ use std::ffi::CStr;
 use clap::Parser;
 use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
-    ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType, ConstantCoefficient_ctor,
-    FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GridFunction_OwnFEC,
-    H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor, LinearForm_ctor_fes,
-    Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file, OrderingType,
+    ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType, ConstantCoefficient_as_coeff,
+    ConstantCoefficient_ctor, DomainLFIntegrator_ctor_ab, FiniteElementSpace_GetEssentialTrueDofs,
+    FiniteElementSpace_ctor, GridFunction_OwnFEC, H1_FECollection, H1_FECollection_as_fec,
+    H1_FECollection_ctor, LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file,
+    OrderingType,
 };
 
 #[derive(Parser)]
@@ -99,6 +100,7 @@ fn main() {
 
     let mut b = LinearForm_ctor_fes(&fespace);
     let one = ConstantCoefficient_ctor(1.0);
+    let integrator = DomainLFIntegrator_ctor_ab(ConstantCoefficient_as_coeff(&one), 2, 0);
     // b.AddDomainIntegrator(DomainLFIntegrator_ctor(one));
     b.pin_mut().Assemble();
 }

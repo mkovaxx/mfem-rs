@@ -145,6 +145,12 @@ pub mod ffi {
 
         fn Assemble(self: Pin<&mut LinearForm>);
 
+        /////////////////
+        // Coefficient //
+        /////////////////
+
+        type Coefficient;
+
         /////////////////////////
         // ConstantCoefficient //
         /////////////////////////
@@ -153,5 +159,19 @@ pub mod ffi {
 
         #[cxx_name = "construct_unique"]
         fn ConstantCoefficient_ctor(c: f64) -> UniquePtr<ConstantCoefficient>;
+
+        fn ConstantCoefficient_as_coeff(coeff: &ConstantCoefficient) -> &Coefficient;
+
+        ////////////////////////
+        // DomainLFIntegrator //
+        ////////////////////////
+
+        type DomainLFIntegrator<'a>;
+
+        fn DomainLFIntegrator_ctor_ab<'a>(
+            coeff: &'a Coefficient,
+            a: i32,
+            b: i32,
+        ) -> UniquePtr<DomainLFIntegrator<'a>>;
     }
 }
