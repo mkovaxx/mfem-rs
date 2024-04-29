@@ -142,5 +142,14 @@ pub mod ffi {
         type LinearForm<'a>;
 
         fn LinearForm_ctor_fes<'a>(fespace: &'a FiniteElementSpace) -> UniquePtr<LinearForm<'a>>;
+
+        /////////////////////////
+        // ConstantCoefficient //
+        /////////////////////////
+
+        type ConstantCoefficient;
+
+        #[cxx_name = "construct_unique"]
+        fn ConstantCoefficient_ctor(c: f64) -> UniquePtr<ConstantCoefficient>;
     }
 }
