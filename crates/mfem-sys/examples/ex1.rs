@@ -91,6 +91,10 @@ fn main() {
         fespace.GetTrueVSize(),
     );
 
+    // 6. Determine the list of true (i.e. conforming) essential boundary dofs.
+    //    In this example, the boundary conditions are defined by marking all
+    //    the boundary attributes from the mesh as essential (Dirichlet) and
+    //    converting them to a list of true dofs.
     let mut ess_tdof_list = ArrayInt_ctor();
     if Mesh_bdr_attributes(&mesh).Size() > 0 {
         let mut ess_bdr = ArrayInt_ctor_size(Mesh_bdr_attributes(&mesh).Max());
@@ -98,6 +102,9 @@ fn main() {
         FiniteElementSpace_GetEssentialTrueDofs(&fespace, &ess_bdr, ess_tdof_list.pin_mut(), -1);
     }
 
+    // 7. Set up the linear form b(.) which corresponds to the right-hand side of
+    //    the FEM linear system, which in this case is (1,phi_i) where phi_i are
+    //    the basis functions in the finite element fespace.
     let mut b = LinearForm_ctor_fes(&fespace);
     let one = ConstantCoefficient_ctor(1.0);
     let one_coeff = ConstantCoefficient_as_coeff(&one);
