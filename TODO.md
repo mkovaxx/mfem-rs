@@ -22,7 +22,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Array<int>::Size()
 - [x] Array<int>::Max()
 - [x] Array<int>::SetAll()
-- [ ] LinearForm
+- [x] LinearForm
 - [ ] LinearForm::AddDomainIntegrator()
 - [ ] LinearForm::Assemble()
 - [ ] ConstantCoefficient

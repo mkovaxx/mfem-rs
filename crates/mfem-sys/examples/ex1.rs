@@ -5,8 +5,8 @@ use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
     ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType,
     FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GridFunction_OwnFEC,
-    H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor, Mesh_GetNodes,
-    Mesh_bdr_attributes, Mesh_ctor_file, OrderingType,
+    H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor, LinearForm_ctor_fes,
+    Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file, OrderingType,
 };
 
 #[derive(Parser)]
@@ -96,4 +96,9 @@ fn main() {
         ArrayInt_SetAll(ess_bdr.pin_mut(), 1);
         FiniteElementSpace_GetEssentialTrueDofs(&fespace, &ess_bdr, ess_tdof_list.pin_mut(), -1);
     }
+
+    let b = LinearForm_ctor_fes(&fespace);
+    // let one = ConstantCoefficient_ctor(1.0);
+    // b.AddDomainIntegrator(DomainLFIntegrator_ctor(one));
+    // b.Assemble();
 }
