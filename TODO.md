@@ -24,7 +24,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Array<int>::SetAll()
 - [x] LinearForm
 - [ ] LinearForm::AddDomainIntegrator()
-- [ ] LinearForm::Assemble()
+- [x] LinearForm::Assemble()
 - [x] ConstantCoefficient
 - [ ] DomainLFIntegrator
 - [ ] BilinearForm

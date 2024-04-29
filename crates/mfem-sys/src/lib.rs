@@ -143,6 +143,8 @@ pub mod ffi {
 
         fn LinearForm_ctor_fes<'a>(fespace: &'a FiniteElementSpace) -> UniquePtr<LinearForm<'a>>;
 
+        fn Assemble(self: Pin<&mut LinearForm>);
+
         /////////////////////////
         // ConstantCoefficient //
         /////////////////////////

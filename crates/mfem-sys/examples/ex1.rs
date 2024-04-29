@@ -97,8 +97,8 @@ fn main() {
         FiniteElementSpace_GetEssentialTrueDofs(&fespace, &ess_bdr, ess_tdof_list.pin_mut(), -1);
     }
 
-    let b = LinearForm_ctor_fes(&fespace);
+    let mut b = LinearForm_ctor_fes(&fespace);
     let one = ConstantCoefficient_ctor(1.0);
     // b.AddDomainIntegrator(DomainLFIntegrator_ctor(one));
-    // b.Assemble();
+    b.pin_mut().Assemble();
 }
