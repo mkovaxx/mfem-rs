@@ -6,8 +6,9 @@ use mfem_sys::ffi::{
     ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType, ConstantCoefficient_as_coeff,
     ConstantCoefficient_ctor, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_lfi,
     FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GridFunction_OwnFEC,
-    H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor, LinearForm_AddDomainIntegrator,
-    LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file, OrderingType,
+    GridFunction_SetAll, GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_fec,
+    H1_FECollection_ctor, LinearForm_AddDomainIntegrator, LinearForm_ctor_fes, Mesh_GetNodes,
+    Mesh_bdr_attributes, Mesh_ctor_file, OrderingType,
 };
 
 #[derive(Parser)]
@@ -112,4 +113,10 @@ fn main() {
     let lfi = DomainLFIntegrator_into_lfi(integrator);
     LinearForm_AddDomainIntegrator(b.pin_mut(), lfi);
     b.pin_mut().Assemble();
+
+    // 8. Define the solution vector x as a finite element grid function
+    //    corresponding to fespace. Initialize x with initial guess of zero,
+    //    which satisfies the boundary conditions.
+    let mut x = GridFunction_ctor_fes(&fespace);
+    GridFunction_SetAll(x.pin_mut(), 0.0);
 }

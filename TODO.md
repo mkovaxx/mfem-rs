@@ -15,6 +15,8 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] H1_FECollection
 - [x] Mesh::GetNodes()
 - [x] GridFunction
+- [x] GridFunction::OwnFEC()
+- [x] GridFunction::SetAll()
 - [x] FiniteElementSpace
 - [x] FiniteElementSpace::GetTrueVSize()
 - [x] FiniteElementSpace::GetEssentialTrueDofs()

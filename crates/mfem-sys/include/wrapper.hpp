@@ -106,6 +106,16 @@ auto GridFunction_OwnFEC(GridFunction const& grid_func) -> FiniteElementCollecti
     return *ptr;
 }
 
+auto GridFunction_ctor_fes(FiniteElementSpace const& fespace) -> std::unique_ptr<GridFunction> {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_fespace = const_cast<FiniteElementSpace&>(fespace);
+    return std::make_unique<GridFunction>(&mut_fespace);
+}
+
+auto GridFunction_SetAll(GridFunction& grid_func, double value) {
+    grid_func = value;
+}
+
 ////////////////
 // LinearForm //
 ////////////////

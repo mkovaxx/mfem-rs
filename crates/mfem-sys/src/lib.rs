@@ -131,9 +131,16 @@ pub mod ffi {
         // GridFunction //
         //////////////////
 
-        type GridFunction;
+        type GridFunction<'fes>;
 
-        fn GridFunction_OwnFEC(grid_func: &GridFunction) -> Result<&FiniteElementCollection>;
+        fn GridFunction_ctor_fes<'fes>(
+            fespace: &'fes FiniteElementSpace,
+        ) -> UniquePtr<GridFunction<'fes>>;
+
+        fn GridFunction_OwnFEC<'a>(
+            grid_func: &'a GridFunction,
+        ) -> Result<&'a FiniteElementCollection>;
+        fn GridFunction_SetAll(grid_func: Pin<&mut GridFunction>, value: f64);
 
         ////////////////
         // LinearForm //
