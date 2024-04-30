@@ -146,9 +146,11 @@ pub mod ffi {
         // LinearForm //
         ////////////////
 
-        type LinearForm<'a>;
+        type LinearForm<'fes>;
 
-        fn LinearForm_ctor_fes<'a>(fespace: &'a FiniteElementSpace) -> UniquePtr<LinearForm<'a>>;
+        fn LinearForm_ctor_fes<'fes>(
+            fespace: &'fes FiniteElementSpace,
+        ) -> UniquePtr<LinearForm<'fes>>;
 
         fn LinearForm_AddDomainIntegrator(
             lf: Pin<&mut LinearForm>,
