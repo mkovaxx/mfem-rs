@@ -203,3 +203,11 @@ auto DiffusionIntegrator_ctor(Coefficient const& coeff) -> std::unique_ptr<Diffu
 auto DiffusionIntegrator_into_bfi(std::unique_ptr<DiffusionIntegrator> diffusion_bfi) -> std::unique_ptr<BilinearFormIntegrator> {
     return std::move(diffusion_bfi);
 }
+
+////////////////////
+// OperatorHandle //
+////////////////////
+
+auto OperatorHandle_as_ref(OperatorHandle const& handle) -> Operator const& {
+    return *handle;
+}

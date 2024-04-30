@@ -11,7 +11,7 @@ use mfem_sys::ffi::{
     GridFunction_SetAll, GridFunction_as_vector, GridFunction_ctor_fes, H1_FECollection,
     H1_FECollection_as_fec, H1_FECollection_ctor, LinearForm_AddDomainIntegrator,
     LinearForm_as_vector, LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file,
-    OperatorHandle_ctor, OrderingType, Vector_ctor,
+    OperatorHandle_as_ref, OperatorHandle_ctor, OrderingType, Vector_ctor,
 };
 
 #[derive(Parser)]
@@ -149,4 +149,14 @@ fn main() {
         x_vec.pin_mut(),
         b_vec.pin_mut(),
     );
+
+    println!(
+        "Size of linear system: {}",
+        OperatorHandle_as_ref(&a_mat).Height()
+    );
+
+    // 11. Solve the linear system A X = B.
+    // Use a simple symmetric Gauss-Seidel preconditioner with PCG.
+    // GSSmoother M((SparseMatrix&)(*A));
+    // PCG(*A, M, B, X, 1, 200, 1e-12, 0.0);
 }

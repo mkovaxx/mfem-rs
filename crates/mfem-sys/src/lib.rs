@@ -266,5 +266,15 @@ pub mod ffi {
 
         #[cxx_name = "construct_unique"]
         fn OperatorHandle_ctor() -> UniquePtr<OperatorHandle>;
+
+        fn OperatorHandle_as_ref(handle: &OperatorHandle) -> &Operator;
+
+        //////////////
+        // Operator //
+        //////////////
+
+        type Operator;
+
+        fn Height(self: &Operator) -> i32;
     }
 }

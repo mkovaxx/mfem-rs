@@ -36,6 +36,8 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [ ] BilinearForm::RecoverFEMSolution()
 - [x] DiffusionIntegrator
 - [x] OperatorHandle
+- [x] Operator
+- [x] Operator::Height()
 - [x] Vector
 - [ ] Vector::Save()
 - [ ] CG
