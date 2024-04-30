@@ -40,4 +40,5 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Operator::Height()
 - [x] Vector
 - [ ] Vector::Save()
-- [ ] CG
+- [ ] GSSmoother
+- [ ] PCG
