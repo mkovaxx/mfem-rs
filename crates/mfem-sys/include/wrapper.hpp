@@ -98,6 +98,10 @@ auto FiniteElementSpace_GetEssentialTrueDofs(
 // GridFunction //
 //////////////////
 
+auto GridFunction_as_vector(GridFunction const& grid_func) -> Vector const& {
+    return grid_func;
+}
+
 auto GridFunction_OwnFEC(GridFunction const& grid_func) -> FiniteElementCollection const& {
     auto ptr = const_cast<GridFunction&>(grid_func).OwnFEC();
     if (!ptr) {
@@ -119,6 +123,10 @@ auto GridFunction_SetAll(GridFunction& grid_func, double value) {
 ////////////////
 // LinearForm //
 ////////////////
+
+auto LinearForm_as_vector(LinearForm const& lf) -> Vector const& {
+    return lf;
+}
 
 auto LinearForm_ctor_fes(FiniteElementSpace const& fespace) -> std::unique_ptr<LinearForm> {
     // HACK(mkovaxx): This might come back to bite me...
@@ -164,6 +172,22 @@ auto BilinearForm_ctor_fes(FiniteElementSpace const& fespace) -> std::unique_ptr
 
 auto BilinearForm_AddDomainIntegrator(BilinearForm& bf, std::unique_ptr<BilinearFormIntegrator> bfi) {
     bf.AddDomainIntegrator(bfi.release());
+}
+
+auto BilinearForm_FormLinearSystem(
+    BilinearForm const& a,
+    ArrayInt const& ess_tdof_list,
+    Vector const& x,
+    Vector const& b,
+    OperatorHandle& a_mat,
+    Vector& x_vec,
+    Vector& b_vec
+) {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_a = const_cast<BilinearForm&>(a);
+    auto& mut_x = const_cast<Vector&>(x);
+    auto& mut_b = const_cast<Vector&>(b);
+    mut_a.FormLinearSystem(ess_tdof_list, mut_x, mut_b, a_mat, x_vec, b_vec);
 }
 
 /////////////////////////

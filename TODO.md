@@ -32,9 +32,10 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] BilinearForm
 - [x] BilinearForm::AddDomainIntegrator()
 - [x] BilinearForm::Assemble()
+- [x] BilinearForm::FormLinearSystem()
 - [ ] BilinearForm::RecoverFEMSolution()
 - [x] DiffusionIntegrator
-- [ ] OperatorPtr
-- [ ] Vector
+- [x] OperatorHandle
+- [x] Vector
 - [ ] Vector::Save()
 - [ ] CG

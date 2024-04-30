@@ -4,13 +4,14 @@ use clap::Parser;
 use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
     ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType,
-    BilinearForm_AddDomainIntegrator, BilinearForm_ctor_fes, ConstantCoefficient_as_coeff,
-    ConstantCoefficient_ctor, DiffusionIntegrator_ctor, DiffusionIntegrator_into_bfi,
-    DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_lfi,
+    BilinearForm_AddDomainIntegrator, BilinearForm_FormLinearSystem, BilinearForm_ctor_fes,
+    ConstantCoefficient_as_coeff, ConstantCoefficient_ctor, DiffusionIntegrator_ctor,
+    DiffusionIntegrator_into_bfi, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_lfi,
     FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GridFunction_OwnFEC,
-    GridFunction_SetAll, GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_fec,
-    H1_FECollection_ctor, LinearForm_AddDomainIntegrator, LinearForm_ctor_fes, Mesh_GetNodes,
-    Mesh_bdr_attributes, Mesh_ctor_file, OrderingType,
+    GridFunction_SetAll, GridFunction_as_vector, GridFunction_ctor_fes, H1_FECollection,
+    H1_FECollection_as_fec, H1_FECollection_ctor, LinearForm_AddDomainIntegrator,
+    LinearForm_as_vector, LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file,
+    OperatorHandle_ctor, OrderingType, Vector_ctor,
 };
 
 #[derive(Parser)]
@@ -129,4 +130,23 @@ fn main() {
     let bf_integrator = DiffusionIntegrator_ctor(one_coeff);
     let bfi = DiffusionIntegrator_into_bfi(bf_integrator);
     BilinearForm_AddDomainIntegrator(a.pin_mut(), bfi);
+
+    // 10. Assemble the bilinear form and the corresponding linear system,
+    //     applying any necessary transformations such as: eliminating boundary
+    //     conditions, applying conforming constraints for non-conforming AMR,
+    //     static condensation, etc.
+    a.pin_mut().Assemble(0);
+
+    let mut a_mat = OperatorHandle_ctor();
+    let mut b_vec = Vector_ctor();
+    let mut x_vec = Vector_ctor();
+    BilinearForm_FormLinearSystem(
+        &a,
+        &ess_tdof_list,
+        GridFunction_as_vector(&x),
+        LinearForm_as_vector(&b),
+        a_mat.pin_mut(),
+        x_vec.pin_mut(),
+        b_vec.pin_mut(),
+    );
 }

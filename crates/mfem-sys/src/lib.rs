@@ -56,6 +56,15 @@ pub mod ffi {
         fn Max(self: &ArrayInt) -> i32;
         fn ArrayInt_SetAll(array: Pin<&mut ArrayInt>, value: i32);
 
+        ////////////
+        // Vector //
+        ////////////
+
+        type Vector;
+
+        #[cxx_name = "construct_unique"]
+        fn Vector_ctor() -> UniquePtr<Vector>;
+
         /////////////////////////////
         // FiniteElementCollection //
         /////////////////////////////
@@ -133,6 +142,8 @@ pub mod ffi {
 
         type GridFunction<'fes>;
 
+        fn GridFunction_as_vector<'a>(grid_func: &'a GridFunction) -> &'a Vector;
+
         fn GridFunction_ctor_fes<'fes>(
             fespace: &'fes FiniteElementSpace,
         ) -> UniquePtr<GridFunction<'fes>>;
@@ -147,6 +158,8 @@ pub mod ffi {
         ////////////////
 
         type LinearForm<'fes>;
+
+        fn LinearForm_as_vector<'a>(lf: &'a LinearForm) -> &'a Vector;
 
         fn LinearForm_ctor_fes<'fes>(
             fespace: &'fes FiniteElementSpace,
@@ -215,6 +228,16 @@ pub mod ffi {
 
         fn Assemble(self: Pin<&mut BilinearForm>, skip_zeros: i32);
 
+        fn BilinearForm_FormLinearSystem(
+            a: &BilinearForm,
+            ess_tdof_list: &ArrayInt,
+            x: &Vector,
+            b: &Vector,
+            a_mat: Pin<&mut OperatorHandle>,
+            x_vec: Pin<&mut Vector>,
+            b_vec: Pin<&mut Vector>,
+        );
+
         ////////////////////////////
         // BilinearFormIntegrator //
         ////////////////////////////
@@ -234,5 +257,14 @@ pub mod ffi {
         fn DiffusionIntegrator_into_bfi<'coeff>(
             diffusion_int: UniquePtr<DiffusionIntegrator<'coeff>>,
         ) -> UniquePtr<BilinearFormIntegrator<'coeff>>;
+
+        ////////////////////
+        // OperatorHandle //
+        ////////////////////
+
+        type OperatorHandle;
+
+        #[cxx_name = "construct_unique"]
+        fn OperatorHandle_ctor() -> UniquePtr<OperatorHandle>;
     }
 }
