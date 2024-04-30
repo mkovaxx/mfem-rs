@@ -197,5 +197,42 @@ pub mod ffi {
         fn DomainLFIntegrator_into_lfi<'a>(
             domain_lfi: UniquePtr<DomainLFIntegrator<'a>>,
         ) -> UniquePtr<LinearFormIntegrator<'a>>;
+
+        //////////////////
+        // BilinearForm //
+        //////////////////
+
+        type BilinearForm<'fes>;
+
+        fn BilinearForm_ctor_fes<'fes>(
+            fespace: &'fes FiniteElementSpace,
+        ) -> UniquePtr<BilinearForm<'fes>>;
+
+        fn BilinearForm_AddDomainIntegrator(
+            bf: Pin<&mut BilinearForm>,
+            bfi: UniquePtr<BilinearFormIntegrator>,
+        );
+
+        fn Assemble(self: Pin<&mut BilinearForm>, skip_zeros: i32);
+
+        ////////////////////////////
+        // BilinearFormIntegrator //
+        ////////////////////////////
+
+        type BilinearFormIntegrator<'a>;
+
+        /////////////////////////
+        // DiffusionIntegrator //
+        /////////////////////////
+
+        type DiffusionIntegrator<'coeff>;
+
+        fn DiffusionIntegrator_ctor<'coeff>(
+            coeff: &'coeff Coefficient,
+        ) -> UniquePtr<DiffusionIntegrator<'coeff>>;
+
+        fn DiffusionIntegrator_into_bfi<'coeff>(
+            diffusion_int: UniquePtr<DiffusionIntegrator<'coeff>>,
+        ) -> UniquePtr<BilinearFormIntegrator<'coeff>>;
     }
 }

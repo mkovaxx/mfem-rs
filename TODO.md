@@ -29,11 +29,11 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] LinearForm::Assemble()
 - [x] ConstantCoefficient
 - [x] DomainLFIntegrator
-- [ ] BilinearForm
-- [ ] BilinearForm::AddDomainIntegrator()
-- [ ] BilinearForm::Assemble()
+- [x] BilinearForm
+- [x] BilinearForm::AddDomainIntegrator()
+- [x] BilinearForm::Assemble()
 - [ ] BilinearForm::RecoverFEMSolution()
-- [ ] DiffusionIntegrator
+- [x] DiffusionIntegrator
 - [ ] OperatorPtr
 - [ ] Vector
 - [ ] Vector::Save()

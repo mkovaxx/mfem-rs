@@ -3,8 +3,10 @@ use std::ffi::CStr;
 use clap::Parser;
 use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
-    ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType, ConstantCoefficient_as_coeff,
-    ConstantCoefficient_ctor, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_lfi,
+    ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType,
+    BilinearForm_AddDomainIntegrator, BilinearForm_ctor_fes, ConstantCoefficient_as_coeff,
+    ConstantCoefficient_ctor, DiffusionIntegrator_ctor, DiffusionIntegrator_into_bfi,
+    DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_lfi,
     FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GridFunction_OwnFEC,
     GridFunction_SetAll, GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_fec,
     H1_FECollection_ctor, LinearForm_AddDomainIntegrator, LinearForm_ctor_fes, Mesh_GetNodes,
@@ -119,4 +121,12 @@ fn main() {
     //    which satisfies the boundary conditions.
     let mut x = GridFunction_ctor_fes(&fespace);
     GridFunction_SetAll(x.pin_mut(), 0.0);
+
+    // 9. Set up the bilinear form a(.,.) on the finite element space
+    //    corresponding to the Laplacian operator -Delta, by adding the Diffusion
+    //    domain integrator.
+    let mut a = BilinearForm_ctor_fes(&fespace);
+    let bf_integrator = DiffusionIntegrator_ctor(one_coeff);
+    let bfi = DiffusionIntegrator_into_bfi(bf_integrator);
+    BilinearForm_AddDomainIntegrator(a.pin_mut(), bfi);
 }

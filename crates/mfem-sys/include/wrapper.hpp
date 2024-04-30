@@ -151,3 +151,31 @@ auto DomainLFIntegrator_ctor_ab(Coefficient const& coeff, int a, int b) -> std::
 auto DomainLFIntegrator_into_lfi(std::unique_ptr<DomainLFIntegrator> domain_lfi) -> std::unique_ptr<LinearFormIntegrator> {
     return std::move(domain_lfi);
 }
+
+//////////////////
+// BilinearForm //
+//////////////////
+
+auto BilinearForm_ctor_fes(FiniteElementSpace const& fespace) -> std::unique_ptr<BilinearForm> {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_fespace = const_cast<FiniteElementSpace&>(fespace);
+    return std::make_unique<BilinearForm>(&mut_fespace);
+}
+
+auto BilinearForm_AddDomainIntegrator(BilinearForm& bf, std::unique_ptr<BilinearFormIntegrator> bfi) {
+    bf.AddDomainIntegrator(bfi.release());
+}
+
+/////////////////////////
+// DiffusionIntegrator //
+/////////////////////////
+
+auto DiffusionIntegrator_ctor(Coefficient const& coeff) -> std::unique_ptr<DiffusionIntegrator> {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_coeff = const_cast<Coefficient&>(coeff);
+    return std::make_unique<DiffusionIntegrator>(mut_coeff);
+}
+
+auto DiffusionIntegrator_into_bfi(std::unique_ptr<DiffusionIntegrator> diffusion_bfi) -> std::unique_ptr<BilinearFormIntegrator> {
+    return std::move(diffusion_bfi);
+}
