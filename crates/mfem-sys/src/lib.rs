@@ -346,5 +346,20 @@ pub mod ffi {
         ) -> UniquePtr<GSSmoother<'mat>>;
 
         fn GSSmoother_as_mut_Solver<'a>(smoother: Pin<&'a mut GSSmoother>) -> Pin<&'a mut Solver>;
+
+        /////////
+        // PCG //
+        /////////
+
+        fn PCG(
+            a_mat: &Operator,
+            solver: Pin<&mut Solver>,
+            b_vec: &Vector,
+            x_vec: Pin<&mut Vector>,
+            print_iter: i32,
+            max_num_iter: i32,
+            rtolerance: f64,
+            atolerance: f64,
+        );
     }
 }

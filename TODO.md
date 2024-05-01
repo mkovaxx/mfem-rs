@@ -44,4 +44,4 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] GSSmoother
 - [x] GSSmoother::as_mut_Solver()
 - [x] Solver
-- [ ] PCG
+- [x] PCG

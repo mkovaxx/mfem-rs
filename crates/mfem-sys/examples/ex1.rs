@@ -12,7 +12,7 @@ use mfem_sys::ffi::{
     GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor,
     LinearForm_AddDomainIntegrator, LinearForm_as_vector, LinearForm_ctor_fes, Mesh_GetNodes,
     Mesh_bdr_attributes, Mesh_ctor_file, OperatorHandle_as_ref, OperatorHandle_ctor,
-    OperatorHandle_try_as_SparseMatrix, OrderingType, Vector_ctor,
+    OperatorHandle_try_as_SparseMatrix, OrderingType, Vector_ctor, PCG,
 };
 
 #[derive(Parser)]
@@ -163,5 +163,14 @@ fn main() {
     let a_sparse = OperatorHandle_try_as_SparseMatrix(&a_mat).expect("Operator is a SparseMatrix");
     let mut m_mat = GSSmoother_ctor(a_sparse, 0, 1);
     let solver = GSSmoother_as_mut_Solver(m_mat.pin_mut());
-    // PCG(*A, M, B, X, 1, 200, 1e-12, 0.0);
+    PCG(
+        OperatorHandle_as_ref(&a_mat),
+        solver,
+        &b_vec,
+        x_vec.pin_mut(),
+        1,
+        200,
+        1e-12,
+        0.0,
+    );
 }
