@@ -36,9 +36,10 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [ ] BilinearForm::RecoverFEMSolution()
 - [x] DiffusionIntegrator
 - [x] OperatorHandle
+- [x] OperatorHandle::try_as_SparseMatrix()
 - [x] Operator
 - [x] Operator::Height()
 - [x] Vector
 - [ ] Vector::Save()
-- [ ] GSSmoother
+- [x] GSSmoother
 - [ ] PCG

@@ -35,6 +35,41 @@ pub mod ffi {
         byVDIM,
     }
 
+    #[derive(Debug)]
+    #[repr(i32)]
+    enum OperatorType {
+        /// ID for the base class Operator, i.e. any type.
+        ANY_TYPE,
+        /// ID for class SparseMatrix.
+        MFEM_SPARSEMAT,
+        /// ID for class HypreParMatrix.
+        Hypre_ParCSR,
+        /// ID for class PetscParMatrix, MATAIJ format.
+        PETSC_MATAIJ,
+        /// ID for class PetscParMatrix, MATIS format.
+        PETSC_MATIS,
+        /// ID for class PetscParMatrix, MATSHELL format.
+        PETSC_MATSHELL,
+        /// ID for class PetscParMatrix, MATNEST format.
+        PETSC_MATNEST,
+        /// ID for class PetscParMatrix, MATHYPRE format.
+        PETSC_MATHYPRE,
+        /// ID for class PetscParMatrix, unspecified format.
+        PETSC_MATGENERIC,
+        /// ID for class ComplexOperator.
+        Complex_Operator,
+        /// ID for class ComplexSparseMatrix.
+        MFEM_ComplexSparseMat,
+        /// ID for class ComplexHypreParMatrix.
+        Complex_Hypre_ParCSR,
+        /// ID for class ComplexDenseMatrix.
+        Complex_DenseMat,
+        /// ID for class BlockMatrix.
+        MFEM_Block_Matrix,
+        /// ID for the base class BlockOperator.
+        MFEM_Block_Operator,
+    }
+
     unsafe extern "C++" {
         // https://github.com/dtolnay/cxx/issues/280
 
@@ -267,7 +302,15 @@ pub mod ffi {
         #[cxx_name = "construct_unique"]
         fn OperatorHandle_ctor() -> UniquePtr<OperatorHandle>;
 
+        fn Type(self: &OperatorHandle) -> OperatorType;
         fn OperatorHandle_as_ref(handle: &OperatorHandle) -> &Operator;
+        fn OperatorHandle_try_as_SparseMatrix(handle: &OperatorHandle) -> Result<&SparseMatrix>;
+
+        //////////////////
+        // OperatorType //
+        //////////////////
+
+        type OperatorType;
 
         //////////////
         // Operator //
@@ -276,5 +319,20 @@ pub mod ffi {
         type Operator;
 
         fn Height(self: &Operator) -> i32;
+
+        //////////////////
+        // SparseMatrix //
+        //////////////////
+
+        type SparseMatrix;
+
+        ////////////////
+        // GSSmoother //
+        ////////////////
+
+        type GSSmoother;
+
+        #[cxx_name = "construct_unique"]
+        fn GSSmoother_ctor(a: &SparseMatrix, t: i32, it: i32) -> UniquePtr<GSSmoother>;
     }
 }

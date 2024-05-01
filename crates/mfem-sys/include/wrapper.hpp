@@ -204,10 +204,23 @@ auto DiffusionIntegrator_into_bfi(std::unique_ptr<DiffusionIntegrator> diffusion
     return std::move(diffusion_bfi);
 }
 
+//////////////////
+// OperatorType //
+//////////////////
+
+using OperatorType = Operator::Type;
+
 ////////////////////
 // OperatorHandle //
 ////////////////////
 
 auto OperatorHandle_as_ref(OperatorHandle const& handle) -> Operator const& {
     return *handle;
+}
+
+auto OperatorHandle_try_as_SparseMatrix(OperatorHandle const& handle) -> SparseMatrix const& {
+    if (handle.Type() != OperatorType::MFEM_SPARSEMAT) {
+        throw mfem_exception("OperatorHandle_try_as_SparseMatrix: wrong type");
+    }
+    return *handle.As<SparseMatrix>();
 }
