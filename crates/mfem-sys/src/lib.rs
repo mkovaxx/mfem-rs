@@ -326,13 +326,25 @@ pub mod ffi {
 
         type SparseMatrix;
 
+        ////////////
+        // Solver //
+        ////////////
+
+        type Solver;
+
         ////////////////
         // GSSmoother //
         ////////////////
 
-        type GSSmoother;
+        type GSSmoother<'mat>;
 
         #[cxx_name = "construct_unique"]
-        fn GSSmoother_ctor(a: &SparseMatrix, t: i32, it: i32) -> UniquePtr<GSSmoother>;
+        fn GSSmoother_ctor<'mat>(
+            a: &'mat SparseMatrix,
+            t: i32,
+            it: i32,
+        ) -> UniquePtr<GSSmoother<'mat>>;
+
+        fn GSSmoother_as_mut_Solver<'a>(smoother: Pin<&'a mut GSSmoother>) -> Pin<&'a mut Solver>;
     }
 }

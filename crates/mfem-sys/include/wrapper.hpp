@@ -224,3 +224,11 @@ auto OperatorHandle_try_as_SparseMatrix(OperatorHandle const& handle) -> SparseM
     }
     return *handle.As<SparseMatrix>();
 }
+
+////////////////
+// GSSmoother //
+////////////////
+
+auto GSSmoother_as_mut_Solver(GSSmoother& smoother) -> Solver& {
+    return smoother;
+}

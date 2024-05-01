@@ -42,4 +42,6 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Vector
 - [ ] Vector::Save()
 - [x] GSSmoother
+- [x] GSSmoother::as_mut_Solver()
+- [x] Solver
 - [ ] PCG
