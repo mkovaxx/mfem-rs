@@ -51,7 +51,7 @@ auto ArrayInt_SetAll(ArrayInt& array, int value) -> void {
 // H1_FECollection //
 /////////////////////
 
-auto H1_FECollection_as_fec(H1_FECollection const& h1_fec) -> FiniteElementCollection const& {
+auto H1_FECollection_as_FEC(H1_FECollection const& h1_fec) -> FiniteElementCollection const& {
     return h1_fec;
 }
 
@@ -98,7 +98,7 @@ auto FiniteElementSpace_GetEssentialTrueDofs(
 // GridFunction //
 //////////////////
 
-auto GridFunction_as_vector(GridFunction const& grid_func) -> Vector const& {
+auto GridFunction_as_Vector(GridFunction const& grid_func) -> Vector const& {
     return grid_func;
 }
 
@@ -128,7 +128,7 @@ auto GridFunction_SetAll(GridFunction& grid_func, double value) {
 // LinearForm //
 ////////////////
 
-auto LinearForm_as_vector(LinearForm const& lf) -> Vector const& {
+auto LinearForm_as_Vector(LinearForm const& lf) -> Vector const& {
     return lf;
 }
 
@@ -146,7 +146,7 @@ auto LinearForm_AddDomainIntegrator(LinearForm& lf, std::unique_ptr<LinearFormIn
 // ConstantCoefficient //
 /////////////////////////
 
-auto ConstantCoefficient_as_coeff(ConstantCoefficient const& coeff) -> Coefficient const& {
+auto ConstantCoefficient_as_Coeff(ConstantCoefficient const& coeff) -> Coefficient const& {
     return coeff;
 }
 
@@ -160,7 +160,7 @@ auto DomainLFIntegrator_ctor_ab(Coefficient const& coeff, int a, int b) -> std::
     return std::make_unique<DomainLFIntegrator>(mut_coeff, a, b);
 }
 
-auto DomainLFIntegrator_into_lfi(std::unique_ptr<DomainLFIntegrator> domain_lfi) -> std::unique_ptr<LinearFormIntegrator> {
+auto DomainLFIntegrator_into_LFI(std::unique_ptr<DomainLFIntegrator> domain_lfi) -> std::unique_ptr<LinearFormIntegrator> {
     return std::move(domain_lfi);
 }
 
@@ -204,7 +204,7 @@ auto DiffusionIntegrator_ctor(Coefficient const& coeff) -> std::unique_ptr<Diffu
     return std::make_unique<DiffusionIntegrator>(mut_coeff);
 }
 
-auto DiffusionIntegrator_into_bfi(std::unique_ptr<DiffusionIntegrator> diffusion_bfi) -> std::unique_ptr<BilinearFormIntegrator> {
+auto DiffusionIntegrator_into_BFI(std::unique_ptr<DiffusionIntegrator> diffusion_bfi) -> std::unique_ptr<BilinearFormIntegrator> {
     return std::move(diffusion_bfi);
 }
 

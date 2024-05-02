@@ -5,12 +5,12 @@ use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::{
     ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType,
     BilinearForm_AddDomainIntegrator, BilinearForm_FormLinearSystem, BilinearForm_ctor_fes,
-    ConstantCoefficient_as_coeff, ConstantCoefficient_ctor, DiffusionIntegrator_ctor,
-    DiffusionIntegrator_into_bfi, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_lfi,
+    ConstantCoefficient_as_Coeff, ConstantCoefficient_ctor, DiffusionIntegrator_ctor,
+    DiffusionIntegrator_into_BFI, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_LFI,
     FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GSSmoother_as_mut_Solver,
-    GSSmoother_ctor, GridFunction_OwnFEC, GridFunction_SetAll, GridFunction_as_mut_Vector,
-    GridFunction_as_vector, GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_fec,
-    H1_FECollection_ctor, LinearForm_AddDomainIntegrator, LinearForm_as_vector,
+    GSSmoother_ctor, GridFunction_OwnFEC, GridFunction_SetAll, GridFunction_as_Vector,
+    GridFunction_as_mut_Vector, GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_FEC,
+    H1_FECollection_ctor, LinearForm_AddDomainIntegrator, LinearForm_as_Vector,
     LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file, OperatorHandle_as_ref,
     OperatorHandle_ctor, OperatorHandle_try_as_SparseMatrix, OrderingType, Vector_ctor, PCG,
 };
@@ -74,7 +74,7 @@ fn main() {
     };
 
     let fec = match &owned_fec {
-        Some(ptr) => H1_FECollection_as_fec(&ptr),
+        Some(ptr) => H1_FECollection_as_FEC(&ptr),
         None => {
             println!("Using isoparametric FEs");
             let nodes = Mesh_GetNodes(&mesh).expect("Mesh has its own nodes");
@@ -112,9 +112,9 @@ fn main() {
     //    the basis functions in the finite element fespace.
     let mut b = LinearForm_ctor_fes(&fespace);
     let one = ConstantCoefficient_ctor(1.0);
-    let one_coeff = ConstantCoefficient_as_coeff(&one);
+    let one_coeff = ConstantCoefficient_as_Coeff(&one);
     let integrator = DomainLFIntegrator_ctor_ab(one_coeff, 2, 0);
-    let lfi = DomainLFIntegrator_into_lfi(integrator);
+    let lfi = DomainLFIntegrator_into_LFI(integrator);
     LinearForm_AddDomainIntegrator(b.pin_mut(), lfi);
     b.pin_mut().Assemble();
 
@@ -129,7 +129,7 @@ fn main() {
     //    domain integrator.
     let mut a = BilinearForm_ctor_fes(&fespace);
     let bf_integrator = DiffusionIntegrator_ctor(one_coeff);
-    let bfi = DiffusionIntegrator_into_bfi(bf_integrator);
+    let bfi = DiffusionIntegrator_into_BFI(bf_integrator);
     BilinearForm_AddDomainIntegrator(a.pin_mut(), bfi);
 
     // 10. Assemble the bilinear form and the corresponding linear system,
@@ -144,8 +144,8 @@ fn main() {
     BilinearForm_FormLinearSystem(
         &a,
         &ess_tdof_list,
-        GridFunction_as_vector(&x),
-        LinearForm_as_vector(&b),
+        GridFunction_as_Vector(&x),
+        LinearForm_as_Vector(&b),
         a_mat.pin_mut(),
         x_vec.pin_mut(),
         b_vec.pin_mut(),
@@ -177,7 +177,7 @@ fn main() {
     // 12. Recover the solution as a finite element grid function.
     a.pin_mut().RecoverFEMSolution(
         &x_vec,
-        LinearForm_as_vector(&b),
+        LinearForm_as_Vector(&b),
         GridFunction_as_mut_Vector(x.pin_mut()),
     );
 }

@@ -121,7 +121,7 @@ pub mod ffi {
             btype: /*BasisType*/ i32,
         ) -> UniquePtr<H1_FECollection>;
 
-        fn H1_FECollection_as_fec(h1_fec: &H1_FECollection) -> &FiniteElementCollection;
+        fn H1_FECollection_as_FEC(h1_fec: &H1_FECollection) -> &FiniteElementCollection;
 
         //////////
         // Mesh //
@@ -177,7 +177,7 @@ pub mod ffi {
 
         type GridFunction<'fes>;
 
-        fn GridFunction_as_vector<'a>(grid_func: &'a GridFunction) -> &'a Vector;
+        fn GridFunction_as_Vector<'a>(grid_func: &'a GridFunction) -> &'a Vector;
 
         fn GridFunction_as_mut_Vector<'a>(
             grid_func: Pin<&'a mut GridFunction>,
@@ -198,7 +198,7 @@ pub mod ffi {
 
         type LinearForm<'fes>;
 
-        fn LinearForm_as_vector<'a>(lf: &'a LinearForm) -> &'a Vector;
+        fn LinearForm_as_Vector<'a>(lf: &'a LinearForm) -> &'a Vector;
 
         fn LinearForm_ctor_fes<'fes>(
             fespace: &'fes FiniteElementSpace,
@@ -226,7 +226,7 @@ pub mod ffi {
         #[cxx_name = "construct_unique"]
         fn ConstantCoefficient_ctor(c: f64) -> UniquePtr<ConstantCoefficient>;
 
-        fn ConstantCoefficient_as_coeff(coeff: &ConstantCoefficient) -> &Coefficient;
+        fn ConstantCoefficient_as_Coeff(coeff: &ConstantCoefficient) -> &Coefficient;
 
         //////////////////////////
         // LinearFormIntegrator //
@@ -246,7 +246,7 @@ pub mod ffi {
             b: i32,
         ) -> UniquePtr<DomainLFIntegrator<'a>>;
 
-        fn DomainLFIntegrator_into_lfi<'a>(
+        fn DomainLFIntegrator_into_LFI<'a>(
             domain_lfi: UniquePtr<DomainLFIntegrator<'a>>,
         ) -> UniquePtr<LinearFormIntegrator<'a>>;
 
@@ -300,7 +300,7 @@ pub mod ffi {
             coeff: &'coeff Coefficient,
         ) -> UniquePtr<DiffusionIntegrator<'coeff>>;
 
-        fn DiffusionIntegrator_into_bfi<'coeff>(
+        fn DiffusionIntegrator_into_BFI<'coeff>(
             diffusion_int: UniquePtr<DiffusionIntegrator<'coeff>>,
         ) -> UniquePtr<BilinearFormIntegrator<'coeff>>;
 
