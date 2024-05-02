@@ -8,11 +8,11 @@ use mfem_sys::ffi::{
     ConstantCoefficient_as_coeff, ConstantCoefficient_ctor, DiffusionIntegrator_ctor,
     DiffusionIntegrator_into_bfi, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_lfi,
     FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GSSmoother_as_mut_Solver,
-    GSSmoother_ctor, GridFunction_OwnFEC, GridFunction_SetAll, GridFunction_as_vector,
-    GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_fec, H1_FECollection_ctor,
-    LinearForm_AddDomainIntegrator, LinearForm_as_vector, LinearForm_ctor_fes, Mesh_GetNodes,
-    Mesh_bdr_attributes, Mesh_ctor_file, OperatorHandle_as_ref, OperatorHandle_ctor,
-    OperatorHandle_try_as_SparseMatrix, OrderingType, Vector_ctor, PCG,
+    GSSmoother_ctor, GridFunction_OwnFEC, GridFunction_SetAll, GridFunction_as_mut_Vector,
+    GridFunction_as_vector, GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_fec,
+    H1_FECollection_ctor, LinearForm_AddDomainIntegrator, LinearForm_as_vector,
+    LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file, OperatorHandle_as_ref,
+    OperatorHandle_ctor, OperatorHandle_try_as_SparseMatrix, OrderingType, Vector_ctor, PCG,
 };
 
 #[derive(Parser)]
@@ -172,5 +172,12 @@ fn main() {
         200,
         1e-12,
         0.0,
+    );
+
+    // 12. Recover the solution as a finite element grid function.
+    a.pin_mut().RecoverFEMSolution(
+        &x_vec,
+        LinearForm_as_vector(&b),
+        GridFunction_as_mut_Vector(x.pin_mut()),
     );
 }

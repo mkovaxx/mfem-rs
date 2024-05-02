@@ -179,6 +179,10 @@ pub mod ffi {
 
         fn GridFunction_as_vector<'a>(grid_func: &'a GridFunction) -> &'a Vector;
 
+        fn GridFunction_as_mut_Vector<'a>(
+            grid_func: Pin<&'a mut GridFunction>,
+        ) -> Pin<&'a mut Vector>;
+
         fn GridFunction_ctor_fes<'fes>(
             fespace: &'fes FiniteElementSpace,
         ) -> UniquePtr<GridFunction<'fes>>;
@@ -271,6 +275,13 @@ pub mod ffi {
             a_mat: Pin<&mut OperatorHandle>,
             x_vec: Pin<&mut Vector>,
             b_vec: Pin<&mut Vector>,
+        );
+
+        fn RecoverFEMSolution(
+            self: Pin<&mut BilinearForm>,
+            x_vec: &Vector,
+            b_vec: &Vector,
+            x: Pin<&mut Vector>,
         );
 
         ////////////////////////////

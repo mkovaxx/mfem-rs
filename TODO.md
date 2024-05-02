@@ -33,7 +33,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] BilinearForm::AddDomainIntegrator()
 - [x] BilinearForm::Assemble()
 - [x] BilinearForm::FormLinearSystem()
-- [ ] BilinearForm::RecoverFEMSolution()
+- [x] BilinearForm::RecoverFEMSolution()
 - [x] DiffusionIntegrator
 - [x] OperatorHandle
 - [x] OperatorHandle::try_as_SparseMatrix()

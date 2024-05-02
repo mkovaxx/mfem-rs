@@ -102,6 +102,10 @@ auto GridFunction_as_vector(GridFunction const& grid_func) -> Vector const& {
     return grid_func;
 }
 
+auto GridFunction_as_mut_Vector(GridFunction& grid_func) -> Vector& {
+    return grid_func;
+}
+
 auto GridFunction_OwnFEC(GridFunction const& grid_func) -> FiniteElementCollection const& {
     auto ptr = const_cast<GridFunction&>(grid_func).OwnFEC();
     if (!ptr) {
