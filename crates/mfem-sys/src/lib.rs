@@ -145,6 +145,7 @@ pub mod ffi {
         fn UniformRefinement(self: Pin<&mut Mesh>, ref_algo: i32);
         fn Mesh_GetNodes(mesh: &Mesh) -> Result<&GridFunction>;
         fn Mesh_bdr_attributes(mesh: &Mesh) -> &ArrayInt;
+        fn Save(self: &Mesh, fname: &CxxString, precision: i32);
 
         ////////////////////////
         // FiniteElementSpace //

@@ -180,4 +180,9 @@ fn main() {
         LinearForm_as_Vector(&b),
         GridFunction_as_mut_Vector(x.pin_mut()),
     );
+
+    // 13. Save the refined mesh and the solution. This output can be viewed later
+    //     using GLVis: "glvis -m refined.mesh -g sol.gf".
+    let_cxx_string!(mesh_filename = "refined.mesh");
+    mesh.Save(&mesh_filename, 8);
 }

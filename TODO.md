@@ -9,7 +9,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Mesh::GetNE()
 - [x] Mesh::UniformRefinement()
 - [x] Mesh::bdr_attributes
-- [ ] Mesh::Print()
+- [x] Mesh::Save()
 - [x] FiniteElementCollection
 - [x] FiniteElementCollection::Name()
 - [x] H1_FECollection
