@@ -17,6 +17,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] GridFunction
 - [x] GridFunction::OwnFEC()
 - [x] GridFunction::SetAll()
+- [x] GridFunction::Save()
 - [x] FiniteElementSpace
 - [x] FiniteElementSpace::GetTrueVSize()
 - [x] FiniteElementSpace::GetEssentialTrueDofs()
@@ -40,7 +41,6 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] Operator
 - [x] Operator::Height()
 - [x] Vector
-- [ ] Vector::Save()
 - [x] GSSmoother
 - [x] GSSmoother::as_mut_Solver()
 - [x] Solver

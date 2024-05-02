@@ -193,6 +193,8 @@ pub mod ffi {
         ) -> Result<&'a FiniteElementCollection>;
         fn GridFunction_SetAll(grid_func: Pin<&mut GridFunction>, value: f64);
 
+        fn GridFunction_Save(grid_func: &GridFunction, fname: &CxxString, precision: i32);
+
         ////////////////
         // LinearForm //
         ////////////////

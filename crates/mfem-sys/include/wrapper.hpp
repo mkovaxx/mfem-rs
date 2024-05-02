@@ -124,6 +124,10 @@ auto GridFunction_SetAll(GridFunction& grid_func, double value) {
     grid_func = value;
 }
 
+auto GridFunction_Save(GridFunction const& grid_func, std::string const& fname, int precision) {
+    grid_func.Save(fname.c_str(), precision);
+}
+
 ////////////////
 // LinearForm //
 ////////////////

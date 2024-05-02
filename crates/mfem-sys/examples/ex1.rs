@@ -8,11 +8,12 @@ use mfem_sys::ffi::{
     ConstantCoefficient_as_Coeff, ConstantCoefficient_ctor, DiffusionIntegrator_ctor,
     DiffusionIntegrator_into_BFI, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_LFI,
     FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GSSmoother_as_mut_Solver,
-    GSSmoother_ctor, GridFunction_OwnFEC, GridFunction_SetAll, GridFunction_as_Vector,
-    GridFunction_as_mut_Vector, GridFunction_ctor_fes, H1_FECollection, H1_FECollection_as_FEC,
-    H1_FECollection_ctor, LinearForm_AddDomainIntegrator, LinearForm_as_Vector,
-    LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file, OperatorHandle_as_ref,
-    OperatorHandle_ctor, OperatorHandle_try_as_SparseMatrix, OrderingType, Vector_ctor, PCG,
+    GSSmoother_ctor, GridFunction_OwnFEC, GridFunction_Save, GridFunction_SetAll,
+    GridFunction_as_Vector, GridFunction_as_mut_Vector, GridFunction_ctor_fes, H1_FECollection,
+    H1_FECollection_as_FEC, H1_FECollection_ctor, LinearForm_AddDomainIntegrator,
+    LinearForm_as_Vector, LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file,
+    OperatorHandle_as_ref, OperatorHandle_ctor, OperatorHandle_try_as_SparseMatrix, OrderingType,
+    Vector_ctor, PCG,
 };
 
 #[derive(Parser)]
@@ -185,4 +186,6 @@ fn main() {
     //     using GLVis: "glvis -m refined.mesh -g sol.gf".
     let_cxx_string!(mesh_filename = "refined.mesh");
     mesh.Save(&mesh_filename, 8);
+    let_cxx_string!(sol_filename = "sol.gf");
+    GridFunction_Save(&x, &sol_filename, 8);
 }
