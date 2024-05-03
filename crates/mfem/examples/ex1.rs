@@ -71,7 +71,25 @@ fn main() -> anyhow::Result<()> {
         None
     };
 
-    dbg!(owned_fec.unwrap().get_name());
+    let owned_nodes = mesh.get_nodes();
+
+    let fec: &dyn FiniteElementCollection = match &owned_fec {
+        Some(h1_fec) => h1_fec,
+        None => {
+            println!("Using isoparametric FEs");
+            let nodes = owned_nodes.as_ref().expect("Mesh has its own nodes");
+            let iso_fec = nodes.get_own_fec().expect("OwnFEC exists");
+            iso_fec
+        }
+    };
+
+    dbg!(fec.get_name());
+
+    let fespace = FiniteElementSpace::new(&mesh, fec, 1, OrderingType::byNODES);
+    println!(
+        "Number of finite element unknowns: {}",
+        fespace.get_true_vsize(),
+    );
 
     Ok(())
 }

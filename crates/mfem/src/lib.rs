@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
@@ -39,8 +37,10 @@ impl Mesh {
         self.inner.GetNE()
     }
 
-    pub fn get_nodes(&self) -> Option<&mfem_sys::ffi::GridFunction> {
-        todo!()
+    pub fn get_nodes<'fes, 'a: 'fes>(&'a self) -> Option<GridFunctionRef<'fes, 'a>> {
+        mfem_sys::ffi::Mesh_GetNodes(&self.inner)
+            .ok()
+            .map(|grid_func| GridFunctionRef { inner: grid_func })
     }
 
     pub fn uniform_refinement(&mut self, ref_algo: RefAlgo) {
@@ -66,8 +66,23 @@ pub use mfem_sys::ffi::BasisType;
 // FiniteElementCollection //
 /////////////////////////////
 
-pub trait FiniteElementCollection {
+pub trait FiniteElementCollection: AsBase<mfem_sys::ffi::FiniteElementCollection> {
     fn get_name(&self) -> String;
+}
+
+impl FiniteElementCollection for mfem_sys::ffi::FiniteElementCollection {
+    fn get_name(&self) -> String {
+        let ptr = self.Name();
+        assert!(!ptr.is_null());
+        let name = unsafe { std::ffi::CStr::from_ptr(ptr) };
+        name.to_owned().into_string().expect("Valid string")
+    }
+}
+
+impl AsBase<mfem_sys::ffi::FiniteElementCollection> for mfem_sys::ffi::FiniteElementCollection {
+    fn as_base(&self) -> &mfem_sys::ffi::FiniteElementCollection {
+        self
+    }
 }
 
 /////////////////////
@@ -87,10 +102,7 @@ impl H1FeCollection {
 
 impl FiniteElementCollection for H1FeCollection {
     fn get_name(&self) -> String {
-        let ptr = self.as_base().Name();
-        assert!(!ptr.is_null());
-        let name = unsafe { std::ffi::CStr::from_ptr(ptr) };
-        name.to_owned().into_string().expect("Valid string")
+        self.as_base().get_name()
     }
 }
 
@@ -106,22 +118,24 @@ impl AsBase<mfem_sys::ffi::FiniteElementCollection> for H1FeCollection {
 
 pub use mfem_sys::ffi::OrderingType;
 
-pub struct FiniteElementSpace<'mesh, 'fec, Fec> {
+pub struct FiniteElementSpace<'mesh, 'fec> {
     inner: UniquePtr<mfem_sys::ffi::FiniteElementSpace<'mesh, 'fec>>,
-    _phantom: PhantomData<Fec>,
 }
 
-impl<'mesh, 'fec, Fec> FiniteElementSpace<'mesh, 'fec, Fec>
-where
-    Fec: FiniteElementCollection + AsBase<mfem_sys::ffi::FiniteElementCollection>,
-{
-    pub fn new(mesh: &'mesh Mesh, fec: &'fec Fec, vdim: i32, ordering: OrderingType) -> Self {
+impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
+    pub fn new(
+        mesh: &'mesh Mesh,
+        fec: &'fec dyn FiniteElementCollection,
+        vdim: i32,
+        ordering: OrderingType,
+    ) -> Self {
         let inner =
             mfem_sys::ffi::FiniteElementSpace_ctor(&mesh.inner, &fec.as_base(), vdim, ordering);
-        Self {
-            inner,
-            _phantom: PhantomData::default(),
-        }
+        Self { inner }
+    }
+
+    pub fn get_true_vsize(&self) -> i32 {
+        self.inner.GetTrueVSize()
     }
 }
 
@@ -133,7 +147,19 @@ pub struct GridFunction<'fes> {
     inner: UniquePtr<mfem_sys::ffi::GridFunction<'fes>>,
 }
 
+pub struct GridFunctionRef<'fes, 'a> {
+    inner: &'a mfem_sys::ffi::GridFunction<'fes>,
+}
+
 impl<'fes> GridFunction<'fes> {}
+
+impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
+    pub fn get_own_fec(&self) -> Option<&dyn FiniteElementCollection> {
+        mfem_sys::ffi::GridFunction_OwnFEC(self.inner)
+            .ok()
+            .map(|fec| fec as &dyn FiniteElementCollection)
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum MfemError {}
