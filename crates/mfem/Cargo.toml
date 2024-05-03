@@ -1,0 +1,19 @@
+[package]
+name = "mfem"
+description = "A high-level Rust wrapper for MFEM"
+authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/mkovaxx/mfem-rs"
+
+[dependencies]
+cxx = "1"
+mfem-sys = { version = "0.1.0", path = "../mfem-sys" }
+
+[features]
+default = ["bundled"]
+bundled = ["mfem-sys/bundled"]
+
+[dev-dependencies]
+clap = { version = "4.5.4", features = ["derive"] }

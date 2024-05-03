@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/mfem",
     "crates/mfem-cpp",
     "crates/mfem-sys",
 ]

@@ -45,3 +45,14 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [x] GSSmoother::as_mut_Solver()
 - [x] Solver
 - [x] PCG
+
+## High-Level Wrapper
+
+- [ ] Turn method-like wrapper functions into real methods
+- [ ] Hide sharp bits such as UniquePtr, C/C++ strings, etc.
+- [ ] Turn C++ base classes into traits to provide `.as_<Base>()` and `.as_mut_<Base>()`
+
+## Stretch Goals
+
+- [ ] Make a `FunctionCoefficient` that can wrap a Rust `fn`-like thing
+- [ ] `GridFunction::ProjectCoefficient()`
