@@ -5,6 +5,46 @@ trait AsBase<T> {
     fn as_base(&self) -> &T;
 }
 
+//////////////
+// ArrayInt //
+//////////////
+
+pub struct ArrayInt {
+    inner: UniquePtr<mfem_sys::ffi::ArrayInt>,
+}
+
+pub struct ArrayIntRef<'a> {
+    inner: &'a mfem_sys::ffi::ArrayInt,
+}
+
+impl ArrayInt {
+    pub fn new() -> Self {
+        let inner = mfem_sys::ffi::ArrayInt_ctor();
+        Self { inner }
+    }
+
+    pub fn with_len(len: usize) -> Self {
+        let inner = mfem_sys::ffi::ArrayInt_ctor_size(len as i32);
+        Self { inner }
+    }
+
+    pub fn set_all(&mut self, value: i32) {
+        mfem_sys::ffi::ArrayInt_SetAll(self.inner.pin_mut(), value);
+    }
+}
+
+impl<'a> ArrayIntRef<'a> {
+    pub fn as_slice(&self) -> &[i32] {
+        let data = self.inner.GetData();
+        let size = self.inner.Size() as usize;
+        unsafe { std::slice::from_raw_parts(data, size) }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &i32> {
+        self.as_slice().iter()
+    }
+}
+
 //////////
 // Mesh //
 //////////
@@ -41,6 +81,11 @@ impl Mesh {
         mfem_sys::ffi::Mesh_GetNodes(&self.inner)
             .ok()
             .map(|grid_func| GridFunctionRef { inner: grid_func })
+    }
+
+    pub fn get_bdr_attributes<'a>(&'a self) -> ArrayIntRef<'a> {
+        let inner = mfem_sys::ffi::Mesh_bdr_attributes(&self.inner);
+        ArrayIntRef { inner }
     }
 
     pub fn uniform_refinement(&mut self, ref_algo: RefAlgo) {
@@ -136,6 +181,20 @@ impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
 
     pub fn get_true_vsize(&self) -> i32 {
         self.inner.GetTrueVSize()
+    }
+
+    pub fn get_essential_true_dofs(
+        &self,
+        bdr_attr_is_ess: &ArrayInt,
+        ess_tdof_list: &mut ArrayInt,
+        component: Option<usize>,
+    ) {
+        mfem_sys::ffi::FiniteElementSpace_GetEssentialTrueDofs(
+            &self.inner,
+            &bdr_attr_is_ess.inner,
+            ess_tdof_list.inner.pin_mut(),
+            component.map(|c| c as i32).unwrap_or(-1),
+        );
     }
 }
 

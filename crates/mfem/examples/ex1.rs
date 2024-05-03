@@ -91,5 +91,16 @@ fn main() -> anyhow::Result<()> {
         fespace.get_true_vsize(),
     );
 
+    // 6. Determine the list of true (i.e. conforming) essential boundary dofs.
+    //    In this example, the boundary conditions are defined by marking all
+    //    the boundary attributes from the mesh as essential (Dirichlet) and
+    //    converting them to a list of true dofs.
+    let mut ess_tdof_list = ArrayInt::new();
+    if let Some(max_bdr_attr) = mesh.get_bdr_attributes().iter().max() {
+        let mut ess_bdr = ArrayInt::with_len(*max_bdr_attr as usize);
+        ess_bdr.set_all(1);
+        fespace.get_essential_true_dofs(&ess_bdr, &mut ess_tdof_list, None);
+    }
+
     Ok(())
 }

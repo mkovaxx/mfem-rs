@@ -87,6 +87,7 @@ pub mod ffi {
         #[cxx_name = "construct_unique"]
         fn ArrayInt_ctor_size(asize: i32) -> UniquePtr<ArrayInt>;
 
+        fn GetData(self: &ArrayInt) -> *const i32;
         fn Size(self: &ArrayInt) -> i32;
         fn Max(self: &ArrayInt) -> i32;
         fn ArrayInt_SetAll(array: Pin<&mut ArrayInt>, value: i32);
