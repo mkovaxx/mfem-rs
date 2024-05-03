@@ -10,10 +10,12 @@ repository = "https://github.com/mkovaxx/mfem-rs"
 [dependencies]
 cxx = "1"
 mfem-sys = { version = "0.1.0", path = "../mfem-sys" }
+thiserror = "1.0.59"
 
 [features]
 default = ["bundled"]
 bundled = ["mfem-sys/bundled"]
 
 [dev-dependencies]
+anyhow = "1.0.82"
 clap = { version = "4.5.4", features = ["derive"] }

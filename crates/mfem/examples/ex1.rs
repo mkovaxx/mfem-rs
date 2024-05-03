@@ -27,8 +27,9 @@ struct Args {
 }
 
 use clap::Parser;
+use mfem::Mesh;
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     // 1. Parse command-line options.
     let args = Args::parse();
 
@@ -39,4 +40,9 @@ fn main() {
     // 3. Read the mesh from the given mesh file. We can handle triangular,
     //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
     //    the same code.
+    let mesh = Mesh::from_file(&args.mesh_file)?;
+    dbg!(mesh.dimension());
+    dbg!(mesh.get_num_elems());
+
+    Ok(())
 }
