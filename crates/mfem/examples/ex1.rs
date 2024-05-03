@@ -27,7 +27,7 @@ struct Args {
 }
 
 use clap::Parser;
-use mfem::{Mesh, RefAlgo};
+use mfem::*;
 
 fn main() -> anyhow::Result<()> {
     // 1. Parse command-line options.
@@ -41,7 +41,8 @@ fn main() -> anyhow::Result<()> {
     //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
     //    the same code.
     let mut mesh = Mesh::from_file(&args.mesh_file)?;
-    dbg!(mesh.dimension());
+    let dim = mesh.dimension();
+    dbg!(dim);
     dbg!(mesh.get_num_elems());
 
     // 4. Refine the mesh to increase the resolution. In this example we do
@@ -49,12 +50,28 @@ fn main() -> anyhow::Result<()> {
     //    largest number that gives a final mesh with no more than 50,000
     //    elements.
     let ref_levels =
-        f64::floor(f64::log2(50000.0 / mesh.get_num_elems() as f64) / mesh.dimension() as f64)
-            as u32;
+        f64::floor(f64::log2(50000.0 / mesh.get_num_elems() as f64) / dim as f64) as u32;
     for _ in 0..ref_levels {
         mesh.uniform_refinement(RefAlgo::A);
     }
     dbg!(mesh.get_num_elems());
+
+    // 5. Define a finite element space on the mesh. Here we use continuous
+    //    Lagrange finite elements of the specified order. If order < 1, we
+    //    instead use an isoparametric/isogeometric space.
+    let owned_fec: Option<H1FeCollection> = if args.order > 0 {
+        Some(H1FeCollection::new(
+            args.order,
+            dim,
+            BasisType::GaussLobatto,
+        ))
+    } else if mesh.get_nodes().is_none() {
+        Some(H1FeCollection::new(1, dim, BasisType::GaussLobatto))
+    } else {
+        None
+    };
+
+    dbg!(owned_fec.unwrap().get_name());
 
     Ok(())
 }
