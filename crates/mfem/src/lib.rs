@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
@@ -36,6 +34,22 @@ impl Mesh {
     pub fn get_num_elems(&self) -> i32 {
         self.inner.GetNE()
     }
+
+    pub fn uniform_refinement(&mut self, ref_algo: RefAlgo) {
+        self.inner.pin_mut().UniformRefinement(ref_algo as i32);
+    }
+}
+
+/// Refinement Algorithm
+#[repr(i32)]
+#[derive(Debug, Copy, Clone)]
+pub enum RefAlgo {
+    /// Algorithm "A"
+    /// Currently used only for pure tetrahedral meshes.
+    /// Produces elements with better quality
+    A = 0,
+    /// Algorithm "B"
+    B = 1,
 }
 
 #[derive(Error, Debug)]

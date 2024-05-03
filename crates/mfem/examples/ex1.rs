@@ -27,7 +27,7 @@ struct Args {
 }
 
 use clap::Parser;
-use mfem::Mesh;
+use mfem::{Mesh, RefAlgo};
 
 fn main() -> anyhow::Result<()> {
     // 1. Parse command-line options.
@@ -40,8 +40,20 @@ fn main() -> anyhow::Result<()> {
     // 3. Read the mesh from the given mesh file. We can handle triangular,
     //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
     //    the same code.
-    let mesh = Mesh::from_file(&args.mesh_file)?;
+    let mut mesh = Mesh::from_file(&args.mesh_file)?;
     dbg!(mesh.dimension());
+    dbg!(mesh.get_num_elems());
+
+    // 4. Refine the mesh to increase the resolution. In this example we do
+    //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
+    //    largest number that gives a final mesh with no more than 50,000
+    //    elements.
+    let ref_levels =
+        f64::floor(f64::log2(50000.0 / mesh.get_num_elems() as f64) / mesh.dimension() as f64)
+            as u32;
+    for _ in 0..ref_levels {
+        mesh.uniform_refinement(RefAlgo::A);
+    }
     dbg!(mesh.get_num_elems());
 
     Ok(())
