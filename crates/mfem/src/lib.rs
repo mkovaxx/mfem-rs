@@ -1,3 +1,4 @@
+use cxx::memory::UniquePtrTarget;
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
@@ -7,6 +8,23 @@ trait AsBase<T> {
 
 trait IntoBase<T> {
     fn into_base(self) -> T;
+}
+
+// Every type T is also its own base type
+impl<T> AsBase<T> for T {
+    fn as_base(&self) -> &T {
+        self
+    }
+}
+
+// Every type T is also its own base type
+impl<T> IntoBase<UniquePtr<T>> for UniquePtr<T>
+where
+    T: UniquePtrTarget,
+{
+    fn into_base(self) -> UniquePtr<T> {
+        self
+    }
 }
 
 //////////////
@@ -157,12 +175,6 @@ pub trait FiniteElementCollection: AsBase<mfem_sys::ffi::FiniteElementCollection
 
 impl FiniteElementCollection for mfem_sys::ffi::FiniteElementCollection {}
 
-impl AsBase<mfem_sys::ffi::FiniteElementCollection> for mfem_sys::ffi::FiniteElementCollection {
-    fn as_base(&self) -> &mfem_sys::ffi::FiniteElementCollection {
-        self
-    }
-}
-
 /////////////////////
 // H1_FECollection //
 /////////////////////
@@ -308,12 +320,6 @@ pub trait Coefficient: AsBase<mfem_sys::ffi::Coefficient> {
     // TODO(mkovaxx)
 }
 
-impl AsBase<mfem_sys::ffi::Coefficient> for mfem_sys::ffi::Coefficient {
-    fn as_base(&self) -> &mfem_sys::ffi::Coefficient {
-        self
-    }
-}
-
 /////////////////////////
 // ConstantCoefficient //
 /////////////////////////
@@ -346,20 +352,6 @@ pub trait LinearFormIntegrator:
     + IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
 {
     // TODO(mkovaxx)
-}
-
-impl AsBase<mfem_sys::ffi::LinearFormIntegrator> for mfem_sys::ffi::LinearFormIntegrator {
-    fn as_base(&self) -> &mfem_sys::ffi::LinearFormIntegrator {
-        self
-    }
-}
-
-impl<'a> IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
-    for UniquePtr<mfem_sys::ffi::LinearFormIntegrator>
-{
-    fn into_base(self) -> UniquePtr<mfem_sys::ffi::LinearFormIntegrator> {
-        self
-    }
 }
 
 ////////////////////////
