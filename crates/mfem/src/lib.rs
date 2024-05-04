@@ -1,5 +1,4 @@
 use cxx::{let_cxx_string, UniquePtr};
-use mfem_sys::ffi::BilinearForm_FormLinearSystem;
 use thiserror::Error;
 
 trait AsBase<T> {
@@ -148,17 +147,15 @@ pub use mfem_sys::ffi::BasisType;
 /////////////////////////////
 
 pub trait FiniteElementCollection: AsBase<mfem_sys::ffi::FiniteElementCollection> {
-    fn get_name(&self) -> String;
-}
-
-impl FiniteElementCollection for mfem_sys::ffi::FiniteElementCollection {
     fn get_name(&self) -> String {
-        let ptr = self.Name();
+        let ptr = self.as_base().Name();
         assert!(!ptr.is_null());
         let name = unsafe { std::ffi::CStr::from_ptr(ptr) };
         name.to_owned().into_string().expect("Valid string")
     }
 }
+
+impl FiniteElementCollection for mfem_sys::ffi::FiniteElementCollection {}
 
 impl AsBase<mfem_sys::ffi::FiniteElementCollection> for mfem_sys::ffi::FiniteElementCollection {
     fn as_base(&self) -> &mfem_sys::ffi::FiniteElementCollection {
@@ -181,11 +178,7 @@ impl H1FeCollection {
     }
 }
 
-impl FiniteElementCollection for H1FeCollection {
-    fn get_name(&self) -> String {
-        self.as_base().get_name()
-    }
-}
+impl FiniteElementCollection for H1FeCollection {}
 
 impl AsBase<mfem_sys::ffi::FiniteElementCollection> for H1FeCollection {
     fn as_base(&self) -> &mfem_sys::ffi::FiniteElementCollection {
