@@ -51,6 +51,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 - [ ] Turn method-like wrapper functions into real methods
 - [ ] Hide sharp bits such as UniquePtr, C/C++ strings, etc.
 - [ ] Turn C++ base classes into traits to provide `.as_base<T>()` and `.as_mut_base<T>()`
+- [ ] Unify `AsBase` and `IntoBase` traits
 
 ## Stretch Goals
 

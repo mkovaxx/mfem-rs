@@ -164,6 +164,10 @@ auto DomainLFIntegrator_ctor_ab(Coefficient const& coeff, int a, int b) -> std::
     return std::make_unique<DomainLFIntegrator>(mut_coeff, a, b);
 }
 
+auto DomainLFIntegrator_as_LFI(DomainLFIntegrator const& domain_lfi) -> LinearFormIntegrator const& {
+    return domain_lfi;
+}
+
 auto DomainLFIntegrator_into_LFI(std::unique_ptr<DomainLFIntegrator> domain_lfi) -> std::unique_ptr<LinearFormIntegrator> {
     return std::move(domain_lfi);
 }

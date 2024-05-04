@@ -1,8 +1,13 @@
 use cxx::{let_cxx_string, UniquePtr};
+use mfem_sys::ffi::DomainLFIntegrator_into_LFI;
 use thiserror::Error;
 
 trait AsBase<T> {
     fn as_base(&self) -> &T;
+}
+
+trait IntoBase<T> {
+    fn into_base(self) -> T;
 }
 
 //////////////
@@ -217,6 +222,125 @@ impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
         mfem_sys::ffi::GridFunction_OwnFEC(self.inner)
             .ok()
             .map(|fec| fec as &dyn FiniteElementCollection)
+    }
+}
+
+////////////////
+// LinearForm //
+////////////////
+
+pub struct LinearForm<'fes> {
+    inner: UniquePtr<mfem_sys::ffi::LinearForm<'fes>>,
+}
+
+impl<'fes> LinearForm<'fes> {
+    pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
+        let inner = mfem_sys::ffi::LinearForm_ctor_fes(&fespace.inner);
+        Self { inner }
+    }
+
+    pub fn add_domain_integrator<Lfi>(&mut self, lfi: Lfi)
+    where
+        Lfi: LinearFormIntegrator,
+    {
+        mfem_sys::ffi::LinearForm_AddDomainIntegrator(self.inner.pin_mut(), lfi.into_base());
+    }
+
+    pub fn assemble(&mut self) {
+        self.inner.pin_mut().Assemble();
+    }
+}
+
+/////////////////
+// Coefficient //
+/////////////////
+
+pub trait Coefficient: AsBase<mfem_sys::ffi::Coefficient> {
+    // TODO(mkovaxx)
+}
+
+impl AsBase<mfem_sys::ffi::Coefficient> for mfem_sys::ffi::Coefficient {
+    fn as_base(&self) -> &mfem_sys::ffi::Coefficient {
+        self
+    }
+}
+
+/////////////////////////
+// ConstantCoefficient //
+/////////////////////////
+
+pub struct ConstantCoefficient {
+    inner: UniquePtr<mfem_sys::ffi::ConstantCoefficient>,
+}
+
+impl ConstantCoefficient {
+    pub fn new(value: f64) -> Self {
+        let inner = mfem_sys::ffi::ConstantCoefficient_ctor(value);
+        Self { inner }
+    }
+}
+
+impl Coefficient for ConstantCoefficient {}
+
+impl AsBase<mfem_sys::ffi::Coefficient> for ConstantCoefficient {
+    fn as_base(&self) -> &mfem_sys::ffi::Coefficient {
+        mfem_sys::ffi::ConstantCoefficient_as_Coeff(&self.inner)
+    }
+}
+
+//////////////////////////
+// LinearFormIntegrator //
+//////////////////////////
+
+pub trait LinearFormIntegrator:
+    AsBase<mfem_sys::ffi::LinearFormIntegrator>
+    + IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
+{
+    // TODO(mkovaxx)
+}
+
+impl AsBase<mfem_sys::ffi::LinearFormIntegrator> for mfem_sys::ffi::LinearFormIntegrator {
+    fn as_base(&self) -> &mfem_sys::ffi::LinearFormIntegrator {
+        self
+    }
+}
+
+impl<'a> IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
+    for UniquePtr<mfem_sys::ffi::LinearFormIntegrator>
+{
+    fn into_base(self) -> UniquePtr<mfem_sys::ffi::LinearFormIntegrator> {
+        self
+    }
+}
+
+////////////////////////
+// DomainLFIntegrator //
+////////////////////////
+
+pub struct DomainLFIntegrator<'coeff> {
+    inner: UniquePtr<mfem_sys::ffi::DomainLFIntegrator<'coeff>>,
+}
+
+impl<'coeff> DomainLFIntegrator<'coeff> {
+    pub fn new(coeff: &'coeff dyn Coefficient, a: i32, b: i32) -> Self {
+        let inner = mfem_sys::ffi::DomainLFIntegrator_ctor_ab(coeff.as_base(), a, b);
+        Self { inner }
+    }
+}
+
+impl<'coeff> LinearFormIntegrator for DomainLFIntegrator<'coeff> {}
+
+impl<'coeff> AsBase<mfem_sys::ffi::LinearFormIntegrator> for DomainLFIntegrator<'coeff> {
+    fn as_base(&self) -> &mfem_sys::ffi::LinearFormIntegrator {
+        mfem_sys::ffi::DomainLFIntegrator_as_LFI(&self.inner)
+    }
+}
+
+impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
+    for DomainLFIntegrator<'coeff>
+{
+    fn into_base(self) -> UniquePtr<mfem_sys::ffi::LinearFormIntegrator> {
+        mfem_sys::ffi::DomainLFIntegrator_into_LFI(self.inner)
     }
 }
 

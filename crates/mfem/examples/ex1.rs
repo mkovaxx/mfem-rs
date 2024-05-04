@@ -102,5 +102,14 @@ fn main() -> anyhow::Result<()> {
         fespace.get_essential_true_dofs(&ess_bdr, &mut ess_tdof_list, None);
     }
 
+    // 7. Set up the linear form b(.) which corresponds to the right-hand side of
+    //    the FEM linear system, which in this case is (1,phi_i) where phi_i are
+    //    the basis functions in the finite element fespace.
+    let mut b = LinearForm::new(&fespace);
+    let one = ConstantCoefficient::new(1.0);
+    let integrator = DomainLFIntegrator::new(&one, 2, 0);
+    b.add_domain_integrator(integrator);
+    b.assemble();
+
     Ok(())
 }

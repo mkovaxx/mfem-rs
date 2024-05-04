@@ -236,23 +236,27 @@ pub mod ffi {
         // LinearFormIntegrator //
         //////////////////////////
 
-        type LinearFormIntegrator<'a>;
+        type LinearFormIntegrator;
 
         ////////////////////////
         // DomainLFIntegrator //
         ////////////////////////
 
-        type DomainLFIntegrator<'a>;
+        type DomainLFIntegrator<'coeff>;
 
-        fn DomainLFIntegrator_ctor_ab<'a>(
-            coeff: &'a Coefficient,
+        fn DomainLFIntegrator_ctor_ab<'coeff>(
+            coeff: &'coeff Coefficient,
             a: i32,
             b: i32,
-        ) -> UniquePtr<DomainLFIntegrator<'a>>;
+        ) -> UniquePtr<DomainLFIntegrator<'coeff>>;
 
-        fn DomainLFIntegrator_into_LFI<'a>(
-            domain_lfi: UniquePtr<DomainLFIntegrator<'a>>,
-        ) -> UniquePtr<LinearFormIntegrator<'a>>;
+        fn DomainLFIntegrator_as_LFI<'coeff, 'a>(
+            domain_lfi: &'a DomainLFIntegrator<'coeff>,
+        ) -> &'a LinearFormIntegrator;
+
+        fn DomainLFIntegrator_into_LFI<'coeff>(
+            domain_lfi: UniquePtr<DomainLFIntegrator<'coeff>>,
+        ) -> UniquePtr<LinearFormIntegrator>;
 
         //////////////////
         // BilinearForm //
