@@ -50,9 +50,10 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 
 - [ ] Turn method-like wrapper functions into real methods
 - [ ] Hide sharp bits such as UniquePtr, C/C++ strings, etc.
-- [ ] Turn C++ base classes into traits to provide `.as_<Base>()` and `.as_mut_<Base>()`
+- [ ] Turn C++ base classes into traits to provide `.as_base<T>()` and `.as_mut_base<T>()`
 
 ## Stretch Goals
 
+- [ ] Get rid of `ArrayInt` and use `&[i32]` and `Vec<i32>` instead
 - [ ] Make a `FunctionCoefficient` that can wrap a Rust `fn`-like thing
 - [ ] `GridFunction::ProjectCoefficient()`
