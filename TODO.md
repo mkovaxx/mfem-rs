@@ -56,5 +56,9 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 ## Stretch Goals
 
 - [ ] Get rid of `ArrayInt` and use `&[i32]` and `Vec<i32>` instead
+- [ ] Separate the different uses of `Array<int>` on the type level:
+    - [ ] DomainMarker
+    - [ ] BoundaryMarker
+    - [ ] DofList
 - [ ] Make a `FunctionCoefficient` that can wrap a Rust `fn`-like thing
 - [ ] `GridFunction::ProjectCoefficient()`
