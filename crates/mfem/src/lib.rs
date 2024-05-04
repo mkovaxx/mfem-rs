@@ -1,6 +1,4 @@
 use cxx::{let_cxx_string, UniquePtr};
-use mfem_sys::ffi::DomainLFIntegrator_into_LFI;
-use mfem_sys::ffi::GridFunction_ctor_fes;
 use thiserror::Error;
 
 trait AsBase<T> {
@@ -353,6 +351,74 @@ impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
         mfem_sys::ffi::DomainLFIntegrator_into_LFI(self.inner)
     }
 }
+
+//////////////////
+// BilinearForm //
+//////////////////
+
+pub struct BilinearForm<'fes> {
+    inner: UniquePtr<mfem_sys::ffi::BilinearForm<'fes>>,
+}
+
+impl<'fes> BilinearForm<'fes> {
+    pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
+        let inner = mfem_sys::ffi::BilinearForm_ctor_fes(&fespace.inner);
+        Self { inner }
+    }
+
+    pub fn add_domain_integrator<Bfi>(&mut self, bfi: Bfi)
+    where
+        Bfi: BilinearFormIntegrator,
+    {
+        mfem_sys::ffi::BilinearForm_AddDomainIntegrator(self.inner.pin_mut(), bfi.into_base());
+    }
+}
+
+////////////////////////////
+// BilinearFormIntegrator //
+////////////////////////////
+
+pub trait BilinearFormIntegrator:
+    AsBase<mfem_sys::ffi::BilinearFormIntegrator>
+    + IntoBase<UniquePtr<mfem_sys::ffi::BilinearFormIntegrator>>
+{
+    // TODO(mkovaxx)
+}
+
+/////////////////////////
+// DiffusionIntegrator //
+/////////////////////////
+
+pub struct DiffusionIntegrator<'coeff> {
+    inner: UniquePtr<mfem_sys::ffi::DiffusionIntegrator<'coeff>>,
+}
+
+impl<'coeff> DiffusionIntegrator<'coeff> {
+    pub fn new(coeff: &'coeff dyn Coefficient) -> Self {
+        let inner = mfem_sys::ffi::DiffusionIntegrator_ctor(coeff.as_base());
+        Self { inner }
+    }
+}
+
+impl<'coeff> BilinearFormIntegrator for DiffusionIntegrator<'coeff> {}
+
+impl<'coeff> AsBase<mfem_sys::ffi::BilinearFormIntegrator> for DiffusionIntegrator<'coeff> {
+    fn as_base(&self) -> &mfem_sys::ffi::BilinearFormIntegrator {
+        mfem_sys::ffi::DiffusionIntegrator_as_BFI(&self.inner)
+    }
+}
+
+impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::BilinearFormIntegrator>>
+    for DiffusionIntegrator<'coeff>
+{
+    fn into_base(self) -> UniquePtr<mfem_sys::ffi::BilinearFormIntegrator> {
+        mfem_sys::ffi::DiffusionIntegrator_into_BFI(self.inner)
+    }
+}
+
+///////////
+// Error //
+///////////
 
 #[derive(Error, Debug)]
 pub enum MfemError {}

@@ -117,5 +117,12 @@ fn main() -> anyhow::Result<()> {
     let mut x = GridFunction::new(&fespace);
     x.set_all(0.0);
 
+    // 9. Set up the bilinear form a(.,.) on the finite element space
+    //    corresponding to the Laplacian operator -Delta, by adding the Diffusion
+    //    domain integrator.
+    let mut a = BilinearForm::new(&fespace);
+    let bf_integrator = DiffusionIntegrator::new(&one);
+    a.add_domain_integrator(bf_integrator);
+
     Ok(())
 }

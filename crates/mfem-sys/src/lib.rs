@@ -296,7 +296,7 @@ pub mod ffi {
         // BilinearFormIntegrator //
         ////////////////////////////
 
-        type BilinearFormIntegrator<'a>;
+        type BilinearFormIntegrator;
 
         /////////////////////////
         // DiffusionIntegrator //
@@ -308,9 +308,13 @@ pub mod ffi {
             coeff: &'coeff Coefficient,
         ) -> UniquePtr<DiffusionIntegrator<'coeff>>;
 
+        fn DiffusionIntegrator_as_BFI<'coeff, 'a>(
+            diffusion_int: &'a DiffusionIntegrator<'coeff>,
+        ) -> &'a BilinearFormIntegrator;
+
         fn DiffusionIntegrator_into_BFI<'coeff>(
             diffusion_int: UniquePtr<DiffusionIntegrator<'coeff>>,
-        ) -> UniquePtr<BilinearFormIntegrator<'coeff>>;
+        ) -> UniquePtr<BilinearFormIntegrator>;
 
         ////////////////////
         // OperatorHandle //

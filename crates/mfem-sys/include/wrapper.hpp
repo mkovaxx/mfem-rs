@@ -212,6 +212,10 @@ auto DiffusionIntegrator_ctor(Coefficient const& coeff) -> std::unique_ptr<Diffu
     return std::make_unique<DiffusionIntegrator>(mut_coeff);
 }
 
+auto DiffusionIntegrator_as_BFI(DiffusionIntegrator const& diffusion_bfi) -> BilinearFormIntegrator const& {
+    return diffusion_bfi;
+}
+
 auto DiffusionIntegrator_into_BFI(std::unique_ptr<DiffusionIntegrator> diffusion_bfi) -> std::unique_ptr<BilinearFormIntegrator> {
     return std::move(diffusion_bfi);
 }
