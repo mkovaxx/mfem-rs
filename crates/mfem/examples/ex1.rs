@@ -135,7 +135,7 @@ fn main() -> anyhow::Result<()> {
     let mut x_vec = Vector::new();
     a.form_linear_system(&ess_tdof_list, &x, &b, &mut a_mat, &mut x_vec, &mut b_vec);
 
-    println!("Size of linear system: {}", a_mat.height(),);
+    println!("Size of linear system: {}", a_mat.height());
     dbg!(a_mat.get_type());
 
     Ok(())
