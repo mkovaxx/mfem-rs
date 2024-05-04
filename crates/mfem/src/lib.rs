@@ -1,5 +1,6 @@
 use cxx::{let_cxx_string, UniquePtr};
 use mfem_sys::ffi::DomainLFIntegrator_into_LFI;
+use mfem_sys::ffi::GridFunction_ctor_fes;
 use thiserror::Error;
 
 trait AsBase<T> {
@@ -215,7 +216,16 @@ pub struct GridFunctionRef<'fes, 'a> {
     inner: &'a mfem_sys::ffi::GridFunction<'fes>,
 }
 
-impl<'fes> GridFunction<'fes> {}
+impl<'fes> GridFunction<'fes> {
+    pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
+        let inner = mfem_sys::ffi::GridFunction_ctor_fes(&fespace.inner);
+        Self { inner }
+    }
+
+    pub fn set_all(&mut self, value: f64) {
+        mfem_sys::ffi::GridFunction_SetAll(self.inner.pin_mut(), value);
+    }
+}
 
 impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
     pub fn get_own_fec(&self) -> Option<&dyn FiniteElementCollection> {

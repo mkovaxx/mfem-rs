@@ -111,5 +111,11 @@ fn main() -> anyhow::Result<()> {
     b.add_domain_integrator(integrator);
     b.assemble();
 
+    // 8. Define the solution vector x as a finite element grid function
+    //    corresponding to fespace. Initialize x with initial guess of zero,
+    //    which satisfies the boundary conditions.
+    let mut x = GridFunction::new(&fespace);
+    x.set_all(0.0);
+
     Ok(())
 }
