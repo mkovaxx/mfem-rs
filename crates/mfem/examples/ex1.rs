@@ -124,5 +124,19 @@ fn main() -> anyhow::Result<()> {
     let bf_integrator = DiffusionIntegrator::new(&one);
     a.add_domain_integrator(bf_integrator);
 
+    // 10. Assemble the bilinear form and the corresponding linear system,
+    //     applying any necessary transformations such as: eliminating boundary
+    //     conditions, applying conforming constraints for non-conforming AMR,
+    //     static condensation, etc.
+    a.assemble(true);
+
+    let mut a_mat = OperatorHandle::new();
+    let mut b_vec = Vector::new();
+    let mut x_vec = Vector::new();
+    a.form_linear_system(&ess_tdof_list, &x, &b, &mut a_mat, &mut x_vec, &mut b_vec);
+
+    println!("Size of linear system: {}", a_mat.height(),);
+    dbg!(a_mat.get_type());
+
     Ok(())
 }

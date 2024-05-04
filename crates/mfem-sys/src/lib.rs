@@ -326,6 +326,7 @@ pub mod ffi {
         fn OperatorHandle_ctor() -> UniquePtr<OperatorHandle>;
 
         fn Type(self: &OperatorHandle) -> OperatorType;
+        // TODO(mkovaxx): Detect when the pointer inside is nullptr
         fn OperatorHandle_as_ref(handle: &OperatorHandle) -> &Operator;
         fn OperatorHandle_try_as_SparseMatrix(handle: &OperatorHandle) -> Result<&SparseMatrix>;
 

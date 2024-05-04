@@ -1,4 +1,5 @@
 use cxx::{let_cxx_string, UniquePtr};
+use mfem_sys::ffi::BilinearForm_FormLinearSystem;
 use thiserror::Error;
 
 trait AsBase<T> {
@@ -46,6 +47,37 @@ impl<'a> ArrayIntRef<'a> {
 
     pub fn iter(&self) -> impl Iterator<Item = &i32> {
         self.as_slice().iter()
+    }
+}
+
+////////////////
+// VectorLike //
+////////////////
+
+pub trait VectorLike: AsBase<mfem_sys::ffi::Vector> {
+    // TODO(mkovaxx)
+}
+
+////////////
+// Vector //
+////////////
+
+pub struct Vector {
+    inner: UniquePtr<mfem_sys::ffi::Vector>,
+}
+
+impl Vector {
+    pub fn new() -> Self {
+        let inner = mfem_sys::ffi::Vector_ctor();
+        Self { inner }
+    }
+}
+
+impl VectorLike for Vector {}
+
+impl AsBase<mfem_sys::ffi::Vector> for Vector {
+    fn as_base(&self) -> &mfem_sys::ffi::Vector {
+        &self.inner
     }
 }
 
@@ -233,6 +265,14 @@ impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
     }
 }
 
+impl<'fes> VectorLike for GridFunction<'fes> {}
+
+impl<'fes> AsBase<mfem_sys::ffi::Vector> for GridFunction<'fes> {
+    fn as_base(&self) -> &mfem_sys::ffi::Vector {
+        mfem_sys::ffi::GridFunction_as_Vector(&self.inner)
+    }
+}
+
 ////////////////
 // LinearForm //
 ////////////////
@@ -256,6 +296,14 @@ impl<'fes> LinearForm<'fes> {
 
     pub fn assemble(&mut self) {
         self.inner.pin_mut().Assemble();
+    }
+}
+
+impl<'fes> VectorLike for LinearForm<'fes> {}
+
+impl<'fes> AsBase<mfem_sys::ffi::Vector> for LinearForm<'fes> {
+    fn as_base(&self) -> &mfem_sys::ffi::Vector {
+        mfem_sys::ffi::LinearForm_as_Vector(&self.inner)
     }
 }
 
@@ -372,6 +420,35 @@ impl<'fes> BilinearForm<'fes> {
     {
         mfem_sys::ffi::BilinearForm_AddDomainIntegrator(self.inner.pin_mut(), bfi.into_base());
     }
+
+    pub fn assemble(&mut self, skip_zeros: bool) {
+        self.inner
+            .pin_mut()
+            .Assemble(if skip_zeros { 1 } else { 0 })
+    }
+
+    pub fn form_linear_system<X, B>(
+        &self,
+        ess_tdof_list: &ArrayInt,
+        x: &X,
+        b: &B,
+        a_mat: &mut OperatorHandle,
+        x_vec: &mut Vector,
+        b_vec: &mut Vector,
+    ) where
+        X: VectorLike,
+        B: VectorLike,
+    {
+        mfem_sys::ffi::BilinearForm_FormLinearSystem(
+            &self.inner,
+            &ess_tdof_list.inner,
+            &x.as_base(),
+            &b.as_base(),
+            a_mat.inner.pin_mut(),
+            x_vec.inner.pin_mut(),
+            b_vec.inner.pin_mut(),
+        );
+    }
 }
 
 ////////////////////////////
@@ -413,6 +490,45 @@ impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::BilinearFormIntegrator>>
 {
     fn into_base(self) -> UniquePtr<mfem_sys::ffi::BilinearFormIntegrator> {
         mfem_sys::ffi::DiffusionIntegrator_into_BFI(self.inner)
+    }
+}
+
+//////////////
+// Operator //
+//////////////
+
+pub trait Operator: AsBase<mfem_sys::ffi::Operator> {
+    fn height(&self) -> i32 {
+        self.as_base().Height()
+    }
+}
+
+////////////////////
+// OperatorHandle //
+////////////////////
+
+pub use mfem_sys::ffi::OperatorType;
+
+pub struct OperatorHandle {
+    inner: UniquePtr<mfem_sys::ffi::OperatorHandle>,
+}
+
+impl OperatorHandle {
+    pub fn new() -> Self {
+        let inner = mfem_sys::ffi::OperatorHandle_ctor();
+        Self { inner }
+    }
+
+    pub fn get_type(&self) -> OperatorType {
+        self.inner.Type()
+    }
+}
+
+impl Operator for OperatorHandle {}
+
+impl AsBase<mfem_sys::ffi::Operator> for OperatorHandle {
+    fn as_base(&self) -> &mfem_sys::ffi::Operator {
+        mfem_sys::ffi::OperatorHandle_as_ref(&self.inner)
     }
 }
 
