@@ -22,6 +22,16 @@ impl<T> AsBase<T> for T {
 }
 
 // Every type T is also its own base type
+impl<T> AsBaseMut<T> for UniquePtr<T>
+where
+    T: UniquePtrTarget,
+{
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut T> {
+        self.pin_mut()
+    }
+}
+
+// Every type T is also its own base type
 impl<T> IntoBase<UniquePtr<T>> for UniquePtr<T>
 where
     T: UniquePtrTarget,
@@ -75,7 +85,7 @@ impl<'a> ArrayIntRef<'a> {
 // VectorLike //
 ////////////////
 
-pub trait VectorLike: AsBase<mfem_sys::ffi::Vector> {
+pub trait VectorLike: AsBase<mfem_sys::ffi::Vector> + AsBaseMut<mfem_sys::ffi::Vector> {
     // TODO(mkovaxx)
 }
 
@@ -99,6 +109,12 @@ impl VectorLike for Vector {}
 impl AsBase<mfem_sys::ffi::Vector> for Vector {
     fn as_base(&self) -> &mfem_sys::ffi::Vector {
         &self.inner
+    }
+}
+
+impl AsBaseMut<mfem_sys::ffi::Vector> for Vector {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Vector> {
+        self.inner.pin_mut()
     }
 }
 
@@ -282,6 +298,12 @@ impl<'fes> AsBase<mfem_sys::ffi::Vector> for GridFunction<'fes> {
     }
 }
 
+impl<'fes> AsBaseMut<mfem_sys::ffi::Vector> for GridFunction<'fes> {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Vector> {
+        mfem_sys::ffi::GridFunction_as_mut_Vector(self.inner.pin_mut())
+    }
+}
+
 ////////////////
 // LinearForm //
 ////////////////
@@ -313,6 +335,12 @@ impl<'fes> VectorLike for LinearForm<'fes> {}
 impl<'fes> AsBase<mfem_sys::ffi::Vector> for LinearForm<'fes> {
     fn as_base(&self) -> &mfem_sys::ffi::Vector {
         mfem_sys::ffi::LinearForm_as_Vector(&self.inner)
+    }
+}
+
+impl<'fes> AsBaseMut<mfem_sys::ffi::Vector> for LinearForm<'fes> {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Vector> {
+        mfem_sys::ffi::LinearForm_as_mut_Vector(self.inner.pin_mut())
     }
 }
 
@@ -437,6 +465,16 @@ impl<'fes> BilinearForm<'fes> {
             x_vec.inner.pin_mut(),
             b_vec.inner.pin_mut(),
         );
+    }
+
+    pub fn recover_fem_solution<B, X>(&mut self, x_vec: &Vector, b_vec: &B, x: &mut X)
+    where
+        B: VectorLike,
+        X: VectorLike,
+    {
+        self.inner
+            .pin_mut()
+            .RecoverFEMSolution(&x_vec.inner, &b_vec.as_base(), x.as_base_mut());
     }
 }
 

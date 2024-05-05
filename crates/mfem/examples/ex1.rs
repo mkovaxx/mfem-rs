@@ -144,5 +144,8 @@ fn main() -> anyhow::Result<()> {
     let mut m_mat = GsSmoother::new(&a_sparse, 0, 1);
     solve_with_pcg(&a_mat, &mut m_mat, &b_vec, &mut x_vec, 1, 200, 1e-12, 0.0);
 
+    // 12. Recover the solution as a finite element grid function.
+    a.recover_fem_solution(&x_vec, &b, &mut x);
+
     Ok(())
 }

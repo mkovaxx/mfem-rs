@@ -136,6 +136,10 @@ auto LinearForm_as_Vector(LinearForm const& lf) -> Vector const& {
     return lf;
 }
 
+auto LinearForm_as_mut_Vector(LinearForm& lf) -> Vector& {
+    return lf;
+}
+
 auto LinearForm_ctor_fes(FiniteElementSpace const& fespace) -> std::unique_ptr<LinearForm> {
     // HACK(mkovaxx): This might come back to bite me...
     auto& mut_fespace = const_cast<FiniteElementSpace&>(fespace);

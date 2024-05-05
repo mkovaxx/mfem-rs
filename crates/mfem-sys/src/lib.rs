@@ -204,6 +204,8 @@ pub mod ffi {
 
         fn LinearForm_as_Vector<'a>(lf: &'a LinearForm) -> &'a Vector;
 
+        fn LinearForm_as_mut_Vector<'a>(lf: Pin<&'a mut LinearForm>) -> Pin<&'a mut Vector>;
+
         fn LinearForm_ctor_fes<'fes>(
             fespace: &'fes FiniteElementSpace,
         ) -> UniquePtr<LinearForm<'fes>>;
