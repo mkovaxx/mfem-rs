@@ -164,6 +164,11 @@ impl Mesh {
     pub fn uniform_refinement(&mut self, ref_algo: RefAlgo) {
         self.inner.pin_mut().UniformRefinement(ref_algo as i32);
     }
+
+    pub fn save_to_file(&self, path: &str, precision: i32) {
+        let_cxx_string!(fname = path);
+        self.inner.Save(&fname, precision);
+    }
 }
 
 /// Refinement Algorithm
@@ -279,6 +284,11 @@ impl<'fes> GridFunction<'fes> {
 
     pub fn set_all(&mut self, value: f64) {
         mfem_sys::ffi::GridFunction_SetAll(self.inner.pin_mut(), value);
+    }
+
+    pub fn save_to_file(&self, path: &str, precision: i32) {
+        let_cxx_string!(fname = path);
+        mfem_sys::ffi::GridFunction_Save(&self.inner, &fname, precision);
     }
 }
 

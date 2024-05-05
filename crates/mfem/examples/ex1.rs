@@ -147,5 +147,10 @@ fn main() -> anyhow::Result<()> {
     // 12. Recover the solution as a finite element grid function.
     a.recover_fem_solution(&x_vec, &b, &mut x);
 
+    // 13. Save the refined mesh and the solution. This output can be viewed later
+    //     using GLVis: "glvis -m refined.mesh -g sol.gf".
+    mesh.save_to_file("refined.mesh", 8);
+    x.save_to_file("sol.gf", 8);
+
     Ok(())
 }
