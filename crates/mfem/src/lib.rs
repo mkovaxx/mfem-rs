@@ -6,6 +6,10 @@ trait AsBase<T> {
     fn as_base(&self) -> &T;
 }
 
+trait AsBaseMut<T> {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut T>;
+}
+
 trait IntoBase<T> {
     fn into_base(self) -> T;
 }
@@ -517,9 +521,108 @@ impl AsBase<mfem_sys::ffi::Operator> for OperatorHandle {
     }
 }
 
+//////////////////
+// SparseMatrix //
+//////////////////
+
+pub struct SparseMatrix {
+    inner: UniquePtr<mfem_sys::ffi::SparseMatrix>,
+}
+
+impl<'a> TryFrom<OperatorHandle> for SparseMatrix {
+    type Error = MfemError;
+
+    fn try_from(value: OperatorHandle) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+pub struct SparseMatrixRef<'a> {
+    inner: &'a mfem_sys::ffi::SparseMatrix,
+}
+
+impl<'a> TryFrom<&'a OperatorHandle> for SparseMatrixRef<'a> {
+    // TODO(mkovaxx)
+    type Error = MfemError;
+
+    fn try_from(value: &'a OperatorHandle) -> Result<Self, Self::Error> {
+        let inner =
+            mfem_sys::ffi::OperatorHandle_try_as_SparseMatrix(&value.inner).map_err(|_| {
+                MfemError::OperatorHandleTypeMismatch(
+                    OperatorType::MFEM_SPARSEMAT,
+                    value.get_type(),
+                )
+            })?;
+        Ok(Self { inner })
+    }
+}
+
+////////////
+// Solver //
+////////////
+
+pub trait Solver: AsBaseMut<mfem_sys::ffi::Solver> {
+    // TODO(mkovaxx)
+}
+
+////////////////
+// GSSmoother //
+////////////////
+
+pub struct GsSmoother<'mat> {
+    inner: UniquePtr<mfem_sys::ffi::GSSmoother<'mat>>,
+}
+
+impl<'mat> GsSmoother<'mat> {
+    pub fn new(a: &SparseMatrixRef<'mat>, t: i32, it: i32) -> Self {
+        let inner = mfem_sys::ffi::GSSmoother_ctor(a.inner, t, it);
+        Self { inner }
+    }
+}
+
+impl<'mat> Solver for GsSmoother<'mat> {}
+
+impl<'mat> AsBaseMut<mfem_sys::ffi::Solver> for GsSmoother<'mat> {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Solver> {
+        mfem_sys::ffi::GSSmoother_as_mut_Solver(self.inner.pin_mut())
+    }
+}
+
+/////////
+// PCG //
+/////////
+
+pub fn solve_with_pcg<Op, So>(
+    a_mat: &Op,
+    solver: &mut So,
+    b_vec: &Vector,
+    x_vec: &mut Vector,
+    print_iter: i32,
+    max_num_iter: i32,
+    rtolerance: f64,
+    atolerance: f64,
+) where
+    Op: Operator,
+    So: Solver,
+{
+    mfem_sys::ffi::PCG(
+        a_mat.as_base(),
+        solver.as_base_mut(),
+        &b_vec.inner,
+        x_vec.inner.pin_mut(),
+        print_iter,
+        max_num_iter,
+        rtolerance,
+        atolerance,
+    );
+}
+
 ///////////
 // Error //
 ///////////
 
 #[derive(Error, Debug)]
-pub enum MfemError {}
+pub enum MfemError {
+    #[error("OperatorHandle type mismatch: expected {0:?} got {1:?}")]
+    OperatorHandleTypeMismatch(OperatorType, OperatorType),
+}

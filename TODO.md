@@ -57,6 +57,7 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 
 ## Stretch Goals
 
+- [ ] Revisit `SomethingRef` types
 - [ ] Get rid of `ArrayInt` and use `&[i32]` and `Vec<i32>` instead
 - [ ] Separate the different uses of `Array<int>` on the type level:
     - [ ] DomainMarker

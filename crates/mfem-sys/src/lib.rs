@@ -350,6 +350,9 @@ pub mod ffi {
 
         type SparseMatrix;
 
+        #[cxx_name = "construct_unique"]
+        fn SparseMatrix_ctor() -> UniquePtr<SparseMatrix>;
+
         ////////////
         // Solver //
         ////////////

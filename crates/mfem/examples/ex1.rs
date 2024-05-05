@@ -138,5 +138,11 @@ fn main() -> anyhow::Result<()> {
     println!("Size of linear system: {}", a_mat.height());
     dbg!(a_mat.get_type());
 
+    // 11. Solve the linear system A X = B.
+    // Use a simple symmetric Gauss-Seidel preconditioner with PCG.
+    let a_sparse = SparseMatrixRef::try_from(&a_mat).expect("Operator is a SparseMatrix");
+    let mut m_mat = GsSmoother::new(&a_sparse, 0, 1);
+    solve_with_pcg(&a_mat, &mut m_mat, &b_vec, &mut x_vec, 1, 200, 1e-12, 0.0);
+
     Ok(())
 }
