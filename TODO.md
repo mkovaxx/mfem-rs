@@ -48,9 +48,9 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
 
 ## High-Level Wrapper
 
-- [ ] Turn method-like wrapper functions into real methods
-- [ ] Hide sharp bits such as UniquePtr, C/C++ strings, etc.
-- [ ] Turn C++ base classes into traits
+- [x] Turn method-like wrapper functions into real methods
+- [x] Hide sharp bits such as UniquePtr, C/C++ strings, etc.
+- [x] Turn C++ base classes into traits
 - [ ] Phase out custom traits
     - [ ] `AsBase` -> `AsRef`
     - [ ] `IntoBase` -> `Into`
