@@ -1,6 +1,7 @@
 [package]
 name = "mfem"
 description = "A high-level Rust wrapper for MFEM"
+readme = "README.md"
 authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
 license = "MIT"
 version = "0.1.0"

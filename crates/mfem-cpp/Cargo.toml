@@ -1,6 +1,7 @@
 [package]
 name = "mfem-cpp"
 description = "Static build of MFEM for use as a Rust dependency"
+readme = "README.md"
 authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
 license = "MIT"
 version = "0.1.0+mfem-4.6.0"
