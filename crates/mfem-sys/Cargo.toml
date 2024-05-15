@@ -4,7 +4,7 @@ description = "Rust bindings to MFEM"
 readme = "README.md"
 authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
 license = "MIT"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 repository = "https://github.com/mkovaxx/mfem-rs"
 
