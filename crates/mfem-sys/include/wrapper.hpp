@@ -120,6 +120,12 @@ auto GridFunction_ctor_fes(FiniteElementSpace const& fespace) -> std::unique_ptr
     return std::make_unique<GridFunction>(&mut_fespace);
 }
 
+auto GridFunction_ProjectCoefficient(GridFunction& grid_func, Coefficient const& coeff) {
+    // HACK(mkovaxx): This might come back to bite me...
+    auto& mut_coeff = const_cast<Coefficient&>(coeff);
+    grid_func.ProjectCoefficient(mut_coeff);
+}
+
 auto GridFunction_SetAll(GridFunction& grid_func, double value) {
     grid_func = value;
 }

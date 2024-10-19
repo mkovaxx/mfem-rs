@@ -4,13 +4,13 @@ description = "A high-level Rust wrapper for MFEM"
 readme = "README.md"
 authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
 license = "MIT"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/mkovaxx/mfem-rs"
 
 [dependencies]
 cxx = "1"
-mfem-sys = { version = "0.1.0", path = "../mfem-sys" }
+mfem-sys = { version = "0.2.0", path = "../mfem-sys" }
 thiserror = "1.0.59"
 
 [features]

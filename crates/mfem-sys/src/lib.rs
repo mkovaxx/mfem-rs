@@ -189,6 +189,8 @@ pub mod ffi {
             fespace: &'fes FiniteElementSpace,
         ) -> UniquePtr<GridFunction<'fes>>;
 
+        fn GridFunction_ProjectCoefficient(grid_func: Pin<&mut GridFunction>, coeff: &Coefficient);
+
         fn GridFunction_OwnFEC<'a>(
             grid_func: &'a GridFunction,
         ) -> Result<&'a FiniteElementCollection>;

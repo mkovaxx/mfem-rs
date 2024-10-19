@@ -282,6 +282,15 @@ impl<'fes> GridFunction<'fes> {
         Self { inner }
     }
 
+    /// Project `coeff` [`Coefficient`] to this [`GridFunction`].
+    ///
+    /// The projection computation depends on the choice of the [`FiniteElementSpace`] `fespace`.
+    ///
+    /// Note that this is usually interpolation at the degrees of freedom in each element (not L2 projection).
+    pub fn project_coefficient(&mut self, coeff: &dyn Coefficient) {
+        mfem_sys::ffi::GridFunction_ProjectCoefficient(self.inner.pin_mut(), coeff.as_base());
+    }
+
     pub fn set_all(&mut self, value: f64) {
         mfem_sys::ffi::GridFunction_SetAll(self.inner.pin_mut(), value);
     }

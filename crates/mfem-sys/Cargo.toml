@@ -4,7 +4,7 @@ description = "Rust bindings to MFEM"
 readme = "README.md"
 authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
 license = "MIT"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/mkovaxx/mfem-rs"
 
@@ -14,7 +14,7 @@ cxx = "1"
 [build-dependencies]
 cmake = "0.1"
 cxx-build = "1"
-mfem-cpp = { version = "0.1", path = "../mfem-cpp", optional = true }
+mfem-cpp = { version = "0.2", path = "../mfem-cpp", optional = true }
 semver = "1.0.22"
 
 [features]
