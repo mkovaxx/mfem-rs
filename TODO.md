@@ -64,4 +64,4 @@ Required for writing (a minimal version of) [Example 1](https://github.com/mkova
     - [ ] BoundaryMarker
     - [ ] DofList
 - [ ] Make a `FunctionCoefficient` that can wrap a Rust `fn`-like thing
-- [ ] `GridFunction::ProjectCoefficient()`
+- [x] `GridFunction::ProjectCoefficient()`
