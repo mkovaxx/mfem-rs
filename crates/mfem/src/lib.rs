@@ -282,6 +282,10 @@ impl<'fes> GridFunction<'fes> {
         Self { inner }
     }
 
+    pub fn project_coefficient(&mut self, coeff: &dyn Coefficient) {
+        mfem_sys::ffi::GridFunction_ProjectCoefficient(self.inner.pin_mut(), coeff.as_base());
+    }
+
     pub fn set_all(&mut self, value: f64) {
         mfem_sys::ffi::GridFunction_SetAll(self.inner.pin_mut(), value);
     }
