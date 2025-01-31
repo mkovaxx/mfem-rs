@@ -15,4 +15,7 @@ Please file an issue and bear with us while we sort things out! Thanks! :)
 - Uses the `cxx` crate to generate safe and correct bindings.
 - Encodes MFEM's ownership rules into Rust's type system.
 - Turns various MFEM `int` constants into type-safe Rust `enum`s.
-- Depends on `mfem-cpp`.
+- Optionally depends on `mfem-cpp`: if the C++ libraries `libmfem` is
+  not installed on you system (with the development files, e.g. via
+  the package `libmfem-dev` on Debian), activate the feature `bundled`
+  so that `libmfem` is compiled in your project.
