@@ -1,4 +1,5 @@
 /// The list of used MFEM libraries which needs to be linked with.
+
 fn main() {
     let target = std::env::var("TARGET").expect("No TARGET environment variable defined");
     let is_windows = target.to_lowercase().contains("windows");
@@ -7,7 +8,7 @@ fn main() {
 
     println!(
         "cargo:rustc-link-search=native={}",
-        mfem_config.library_dir.to_str().unwrap()
+        mfem_config.library_dir.display()
     );
 
     for lib in mfem_config.mfem_libs {
@@ -62,12 +63,12 @@ impl MfemConfig {
         // Pre-installed MFEM will be checked for compatibility using semver rules.
         let version_req = semver::VersionReq::parse(">=4.6").expect("Invalid version constraint");
 
-        println!("cargo:rerun-if-env-changed=DEP_MFEM_ROOT");
+        println!("cargo:rerun-if-env-changed=MFEM_DIR");
 
         // Add path to bundled MFEM
         #[cfg(feature = "bundled")]
         {
-            std::env::set_var("DEP_MFEM_ROOT", mfem_cpp::mfem_path().as_os_str());
+            std::env::set_var("MFEM_DIR", mfem_cpp::mfem_path().as_os_str());
         }
 
         let dst =
@@ -77,16 +78,18 @@ impl MfemConfig {
         let dst = dst.expect("Bundled MFEM not found.");
 
         #[cfg(not(feature = "bundled"))]
-        let dst = dst.expect("Pre-installed MFEM not found. You can use `bundled` feature if you do not want to install MFEM system-wide.");
+        let dst = dst.expect("Pre-installed MFEM not found.  You can use MFEM_DIR to point to its location. Alternatively, you can use `bundled` feature if you do not want to install MFEM system-wide.");
 
         let cfg = std::fs::read_to_string(dst.join("share").join("mfem_info.txt"))
             .expect("Something went wrong when detecting MFEM.");
 
         let mut version: Option<semver::Version> = None;
-        let mut mfem_libs: Vec<String> = vec![];
-        let mut include_dirs: Vec<std::path::PathBuf> = vec![];
-        let mut library_dir: Option<std::path::PathBuf> = None;
-        let mut cxx_flags: Vec<String> = vec![];
+        let mut mfem_config = MfemConfig {
+            mfem_libs: vec![],
+            include_dirs: vec![],
+            library_dir: std::path::PathBuf::new(),
+            cxx_flags: vec![],
+        };
 
         for line in cfg.lines() {
             if let Some((var, val)) = line.split_once('=') {
@@ -94,20 +97,19 @@ impl MfemConfig {
                     // Keep in sync with "MFEM/CMakeLists.txt".
                     "VERSION" => version = semver::Version::parse(val).ok(),
                     "MFEM_LIBRARIES" => {
-                        for l in val.split(" ") {
-                            // FIXME: Right delim?
-                            mfem_libs.push(l.into());
+                        for l in val.split(";") {
+                            mfem_config.mfem_libs.push(l.into());
                         }
                     }
                     "INCLUDE_DIRS" => {
                         for d in val.split(";") {
-                            include_dirs.push(d.into());
+                            mfem_config.include_dirs.push(d.into());
                         }
                     }
-                    "LIBRARY_DIR" => library_dir = val.parse().ok(),
+                    "LIBRARY_DIR" => mfem_config.library_dir = val.into(),
                     "CXX_FLAGS" => {
                         for f in val.split(" ") {
-                            cxx_flags.push(f.into());
+                            mfem_config.cxx_flags.push(f.into());
                         }
                     }
                     _ => (),
@@ -115,7 +117,7 @@ impl MfemConfig {
             }
         }
 
-        if let (Some(version), Some(library_dir)) = (version, library_dir) {
+        if let Some(version) = version {
             if !version_req.matches(&version) {
                 #[cfg(feature = "bundled")]
                 panic!("Bundled MFEM found but version is not met (found {} but {} required). Please fix MFEM_VERSION in build script of `mfem-sys` crate or submodule mfem in `mfem-cpp` crate.",
@@ -125,13 +127,7 @@ impl MfemConfig {
                 panic!("Pre-installed MFEM found but version is not met (found {} but {} required). Please provide required version or use `bundled` feature.",
                        version, version_req);
             }
-
-            Self {
-                mfem_libs,
-                include_dirs,
-                library_dir,
-                cxx_flags,
-            }
+            mfem_config
         } else {
             panic!("MFEM found but something went wrong during configuration.");
         }
