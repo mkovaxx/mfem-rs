@@ -4,7 +4,7 @@ description = "Static build of MFEM for use as a Rust dependency"
 readme = "README.md"
 authors = ["Mate Kovacs <mkovaxx@gmail.com>"]
 license = "MIT"
-version = "0.2.0+mfem-4.6.0"
+version = "0.3.0+mfem-4.7.0"
 edition = "2021"
 repository = "https://github.com/mkovaxx/mfem-rs"
 
