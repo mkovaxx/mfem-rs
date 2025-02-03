@@ -4,7 +4,7 @@ fn main() {
     let target = std::env::var("TARGET").expect("No TARGET environment variable defined");
     let is_windows = target.to_lowercase().contains("windows");
 
-    let mfem_config = MfemConfig::detect();
+    let mut mfem_config = MfemConfig::detect();
 
     println!(
         "cargo:rustc-link-search=native={}",
@@ -22,29 +22,30 @@ fn main() {
         println!("cargo:rustc-link-lib=dylib=user32");
     }
 
-    let mut build = cxx_build::bridge("src/lib.rs");
-
+    mfem_config.include_dirs.push("src".into());
+    mfem_config.include_dirs.push("include".into()); // for cxx.
+    let mut build = autocxx_build::Builder::new("src/lib.rs", &mfem_config.include_dirs)
+        .build()
+        .expect("autocxx builder");
+    build
+        .flag_if_supported("-std=c++14")
+        .flag_if_supported("-O3")
+        .flag_if_supported("-w");
+    for f in mfem_config.cxx_flags {
+        build.flag_if_supported(&f);
+    }
     if let "windows" = std::env::consts::OS {
         let current = std::env::current_dir().unwrap();
         build.include(current.parent().unwrap());
     }
 
-    build
-        .cpp(true)
-        .std("c++14")
-        .flag_if_supported("-w")
-        .includes(mfem_config.include_dirs)
-        .include("include");
-    for f in mfem_config.cxx_flags {
-        build.flag_if_supported(&f);
-    }
+    build.compile("mfem-sys");
 
-    build.compile("wrapper");
-
-    println!("cargo:rustc-link-lib=static=wrapper");
+    println!("cargo:rustc-link-lib=static=mfem-sys");
 
     println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=include/wrapper.hpp");
+    println!("cargo:rerun-if-changed=src/ffi_autocxx.hpp");
+    println!("cargo:rerun-if-changed=src/ffi_cxx.hpp");
 }
 
 #[derive(Debug)]

@@ -1,8 +1,10 @@
+#![allow(non_snake_case)]
+
 /// MFEM Example 1
 ///
 /// This example code demonstrates the use of MFEM to define a
 /// simple finite element discretization of the Laplace problem
-/// -Delta u = 1 with homogeneous Dirichlet boundary conditions.
+/// -Δu = 1 with homogeneous Dirichlet boundary conditions.
 /// Specifically, we discretize using a FE space of the specified
 /// order, or if order < 1 using an isoparametric/isogeometric
 /// space (i.e. quadratic for quadratic curvilinear mesh, NURBS for
@@ -26,23 +28,12 @@ struct Args {
     order: i32,
 }
 
-use std::ffi::CStr;
+use std::{ffi::CStr, pin::Pin, ptr, slice};
 
+use autocxx::prelude::*;
 use clap::Parser;
 use cxx::{let_cxx_string, UniquePtr};
-use mfem_sys::ffi::{
-    ArrayInt_SetAll, ArrayInt_ctor, ArrayInt_ctor_size, BasisType,
-    BilinearForm_AddDomainIntegrator, BilinearForm_FormLinearSystem, BilinearForm_ctor_fes,
-    ConstantCoefficient_as_Coeff, ConstantCoefficient_ctor, DiffusionIntegrator_ctor,
-    DiffusionIntegrator_into_BFI, DomainLFIntegrator_ctor_ab, DomainLFIntegrator_into_LFI,
-    FiniteElementSpace_GetEssentialTrueDofs, FiniteElementSpace_ctor, GSSmoother_as_mut_Solver,
-    GSSmoother_ctor, GridFunction_OwnFEC, GridFunction_Save, GridFunction_SetAll,
-    GridFunction_as_Vector, GridFunction_as_mut_Vector, GridFunction_ctor_fes, H1_FECollection,
-    H1_FECollection_as_FEC, H1_FECollection_ctor, LinearForm_AddDomainIntegrator,
-    LinearForm_as_Vector, LinearForm_ctor_fes, Mesh_GetNodes, Mesh_bdr_attributes, Mesh_ctor_file,
-    OperatorHandle_as_ref, OperatorHandle_ctor, OperatorHandle_try_as_SparseMatrix, OrderingType,
-    Vector_ctor, PCG,
-};
+use mfem_sys::*;
 
 fn main() {
     // 1. Parse command-line options.
@@ -56,7 +47,7 @@ fn main() {
     //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
     //    the same code.
     let_cxx_string!(mesh_file = args.mesh_file);
-    let mut mesh = Mesh_ctor_file(&mesh_file, 1, 1, true);
+    let mut mesh = UniquePtr::emplace(Mesh::LoadFromFile(&mesh_file, c_int(1), c_int(1), true));
     let dim = mesh.Dimension();
 
     dbg!(mesh.GetNE());
@@ -66,10 +57,12 @@ fn main() {
     //    largest number that gives a final mesh with no more than 50,000
     //    elements.
     {
-        let ref_levels = f64::floor(f64::log2(50000.0 / mesh.GetNE() as f64) / dim as f64) as u32;
+        let ne: i32 = mesh.GetNE().into();
+        let dim: i32 = dim.into();
+        let ref_levels = ((50000.0 / ne as f64).log2() / dim as f64).floor() as u32;
 
         for _ in 0..ref_levels {
-            mesh.pin_mut().UniformRefinement(0);
+            mesh.pin_mut().UniformRefinement1(c_int(0));
         }
     }
 
@@ -79,24 +72,34 @@ fn main() {
     //    Lagrange finite elements of the specified order. If order < 1, we
     //    instead use an isoparametric/isogeometric space.
     let owned_fec: Option<UniquePtr<H1_FECollection>> = if args.order > 0 {
-        Some(H1_FECollection_ctor(
-            args.order,
+        Some(UniquePtr::emplace(H1_FECollection::new(
+            c_int(args.order),
             dim,
-            BasisType::GaussLobatto.repr,
-        ))
-    } else if Mesh_GetNodes(&mesh).is_err() {
-        Some(H1_FECollection_ctor(1, dim, BasisType::GaussLobatto.repr))
+            c_int(BasisType::GaussLobatto as i32),
+        )))
+    } else if !mesh.GetNodes2().is_null() {
+        Some(UniquePtr::emplace(H1_FECollection::new(
+            c_int(1),
+            dim,
+            c_int(BasisType::GaussLobatto as i32),
+        )))
     } else {
         None
     };
 
     let fec = match &owned_fec {
-        Some(ptr) => H1_FECollection_as_FEC(&ptr),
+        Some(ptr) => {
+            let fec = ptr.as_ref().unwrap();
+            // `H1_FECollection` is a subclass of `FiniteElementCollection`.
+            unsafe { std::intrinsics::transmute::<&H1_FECollection, &FiniteElementCollection>(fec) }
+        }
         None => {
             println!("Using isoparametric FEs");
-            let nodes = Mesh_GetNodes(&mesh).expect("Mesh has its own nodes");
-            let iso_fec = GridFunction_OwnFEC(nodes).expect("OwnFEC exists");
-            iso_fec
+            let nodes: *const GridFunction = mesh.GetNodes2();
+            assert!(!nodes.is_null());
+            let iso_fec = GridFunction_OwnFEC(unsafe { &*nodes });
+            assert!(!iso_fec.is_null());
+            unsafe { &*iso_fec }
         }
     };
 
@@ -107,7 +110,7 @@ fn main() {
         dbg!(fec_name);
     }
 
-    let fespace = FiniteElementSpace_ctor(&mesh, fec, 1, OrderingType::byNODES);
+    let fespace = FES_new(mesh.pin_mut(), fec, c_int(1), Ordering_Type::byNODES);
     println!(
         "Number of finite element unknowns: {}",
         fespace.GetTrueVSize(),
@@ -117,71 +120,74 @@ fn main() {
     //    In this example, the boundary conditions are defined by marking all
     //    the boundary attributes from the mesh as essential (Dirichlet) and
     //    converting them to a list of true dofs.
-    let mut ess_tdof_list = ArrayInt_ctor();
-    if Mesh_bdr_attributes(&mesh).Size() > 0 {
-        let mut ess_bdr = ArrayInt_ctor_size(Mesh_bdr_attributes(&mesh).Max());
-        ArrayInt_SetAll(ess_bdr.pin_mut(), 1);
-        FiniteElementSpace_GetEssentialTrueDofs(&fespace, &ess_bdr, ess_tdof_list.pin_mut(), -1);
+    let mut ess_tdof_list = arrayint_with_len(0);
+    let bdr_attr = Mesh_bdr_attributes(&mesh);
+    if Into::<i32>::into(bdr_attr.Size()) > 0 {
+        let &n = slice_of_array_int(&bdr_attr).iter().max().unwrap();
+        let mut ess_bdr = arrayint_with_len(n);
+        slice_mut_of_array_int(ess_bdr.pin_mut()).fill(1);
+        fespace.GetEssentialTrueDofs(&ess_bdr, ess_tdof_list.pin_mut(), -1);
     }
 
     // 7. Set up the linear form b(.) which corresponds to the right-hand side of
     //    the FEM linear system, which in this case is (1,phi_i) where phi_i are
     //    the basis functions in the finite element fespace.
-    let mut b = LinearForm_ctor_fes(&fespace);
-    let one = ConstantCoefficient_ctor(1.0);
-    let one_coeff = ConstantCoefficient_as_Coeff(&one);
-    let integrator = DomainLFIntegrator_ctor_ab(one_coeff, 2, 0);
-    let lfi = DomainLFIntegrator_into_LFI(integrator);
-    LinearForm_AddDomainIntegrator(b.pin_mut(), lfi);
+    let mut b = UniquePtr::emplace(unsafe { LinearForm::new1(fespace.as_mut_ptr()) });
+    let one = UniquePtr::emplace(ConstantCoefficient::new(1.0));
+    let mut one = ConstantCoefficient_into_Coefficient(one);
+    let lfi = UniquePtr::emplace(DomainLFIntegrator::new(one.pin_mut(), c_int(2), c_int(0)));
+    // Beware that the linear form takes ownership of `lfi`.
+    unsafe { b.pin_mut().AddDomainIntegrator(lfi.into_raw() as *mut _) };
     b.pin_mut().Assemble();
 
     // 8. Define the solution vector x as a finite element grid function
     //    corresponding to fespace. Initialize x with initial guess of zero,
     //    which satisfies the boundary conditions.
-    let mut x = GridFunction_ctor_fes(&fespace);
-    GridFunction_SetAll(x.pin_mut(), 0.0);
+    let mut x = UniquePtr::emplace(unsafe { GridFunction::new2(fespace.as_mut_ptr()) });
+    slice_mut_of_Vector(GridFunction_as_Vector_mut(x.pin_mut())).fill(0.0);
 
     // 9. Set up the bilinear form a(.,.) on the finite element space
     //    corresponding to the Laplacian operator -Delta, by adding the Diffusion
     //    domain integrator.
-    let mut a = BilinearForm_ctor_fes(&fespace);
-    let bf_integrator = DiffusionIntegrator_ctor(one_coeff);
-    let bfi = DiffusionIntegrator_into_BFI(bf_integrator);
-    BilinearForm_AddDomainIntegrator(a.pin_mut(), bfi);
+    let mut a = UniquePtr::emplace(unsafe { BilinearForm::new2(fespace.as_mut_ptr()) });
+    let ir: *const IntegrationRule = ptr::null();
+    let bfi = UniquePtr::emplace(unsafe { DiffusionIntegrator::new1(one.pin_mut(), ir) });
+    // The bilinear form takes ownership of `bfi`.
+    unsafe { a.pin_mut().AddDomainIntegrator(bfi.into_raw() as *mut _) };
 
     // 10. Assemble the bilinear form and the corresponding linear system,
     //     applying any necessary transformations such as: eliminating boundary
     //     conditions, applying conforming constraints for non-conforming AMR,
     //     static condensation, etc.
-    a.pin_mut().Assemble(0);
+    a.pin_mut().Assemble(c_int(0));
 
-    let mut a_mat = OperatorHandle_ctor();
-    let mut b_vec = Vector_ctor();
-    let mut x_vec = Vector_ctor();
-    BilinearForm_FormLinearSystem(
-        &a,
+    let mut a_mat = UniquePtr::emplace(OperatorHandle::new());
+    let mut b_vec = UniquePtr::emplace(Vector::new());
+    let mut x_vec = UniquePtr::emplace(Vector::new());
+    a.pin_mut().FormLinearSystem(
         &ess_tdof_list,
-        GridFunction_as_Vector(&x),
-        LinearForm_as_Vector(&b),
+        GridFunction_as_Vector_mut(x.pin_mut()),
+        LinearForm_as_Vector_mut(b.pin_mut()),
         a_mat.pin_mut(),
         x_vec.pin_mut(),
         b_vec.pin_mut(),
+        c_int(0),
     );
 
     println!(
         "Size of linear system: {}",
-        OperatorHandle_as_ref(&a_mat).Height()
+        OperatorHandle_operator(a_mat.as_ref().unwrap()).Height()
     );
 
     dbg!(a_mat.Type());
 
     // 11. Solve the linear system A X = B.
     // Use a simple symmetric Gauss-Seidel preconditioner with PCG.
-    let a_sparse = OperatorHandle_try_as_SparseMatrix(&a_mat).expect("Operator is a SparseMatrix");
-    let mut m_mat = GSSmoother_ctor(a_sparse, 0, 1);
+    let a_sparse = unsafe { OperatorHandle_ref_SparseMatrix(&a_mat) };
+    let mut m_mat = UniquePtr::emplace(GSSmoother::new1(a_sparse, c_int(0), c_int(1)));
     let solver = GSSmoother_as_mut_Solver(m_mat.pin_mut());
     PCG(
-        OperatorHandle_as_ref(&a_mat),
+        OperatorHandle_operator(&a_mat),
         solver,
         &b_vec,
         x_vec.pin_mut(),
@@ -190,18 +196,61 @@ fn main() {
         1e-12,
         0.0,
     );
-
     // 12. Recover the solution as a finite element grid function.
     a.pin_mut().RecoverFEMSolution(
         &x_vec,
         LinearForm_as_Vector(&b),
-        GridFunction_as_mut_Vector(x.pin_mut()),
+        GridFunction_as_Vector_mut(x.pin_mut()),
     );
 
     // 13. Save the refined mesh and the solution. This output can be viewed later
     //     using GLVis: "glvis -m refined.mesh -g sol.gf".
     let_cxx_string!(mesh_filename = "refined.mesh");
-    mesh.Save(&mesh_filename, 8);
+    mesh.Save(&mesh_filename, c_int(8));
     let_cxx_string!(sol_filename = "sol.gf");
-    GridFunction_Save(&x, &sol_filename, 8);
+    unsafe { x.Save1(sol_filename.as_ptr() as *const _, c_int(8)) };
+}
+
+fn slice_of_array_int(a: &ArrayInt) -> &[i32] {
+    let len: i32 = a.Size().into();
+    let data = a.GetData() as *const i32;
+    unsafe { slice::from_raw_parts(data, len as usize) }
+}
+
+fn slice_mut_of_array_int(a: Pin<&mut ArrayInt>) -> &mut [i32] {
+    let len: i32 = a.Size().into();
+    let data = a.GetDataMut() as *mut i32;
+    unsafe { slice::from_raw_parts_mut(data, len as usize) }
+}
+
+fn ConstantCoefficient_into_Coefficient(
+    c: UniquePtr<ConstantCoefficient>,
+) -> UniquePtr<Coefficient> {
+    unsafe {
+        std::intrinsics::transmute::<UniquePtr<ConstantCoefficient>, UniquePtr<Coefficient>>(c)
+    }
+}
+
+fn LinearForm_as_Vector(x: &LinearForm) -> &Vector {
+    unsafe { std::intrinsics::transmute::<&LinearForm, &Vector>(x) }
+}
+
+fn LinearForm_as_Vector_mut(x: Pin<&mut LinearForm>) -> Pin<&mut Vector> {
+    unsafe { std::intrinsics::transmute::<Pin<&mut LinearForm>, Pin<&mut Vector>>(x) }
+}
+
+fn GridFunction_as_Vector_mut(gf: Pin<&mut GridFunction>) -> Pin<&mut Vector> {
+    // GridFunction is a subclass of Vector.
+    unsafe { std::intrinsics::transmute::<Pin<&mut GridFunction>, Pin<&mut Vector>>(gf) }
+}
+
+fn slice_mut_of_Vector(v: Pin<&mut Vector>) -> &mut [f64] {
+    let len: i32 = v.Size().into();
+    let data = v.GetData();
+    unsafe { slice::from_raw_parts_mut(data, len as usize) }
+}
+
+fn GSSmoother_as_mut_Solver(s: Pin<&mut GSSmoother>) -> Pin<&mut Solver> {
+    // GSSmoother is a subclass of Solver
+    unsafe { std::intrinsics::transmute::<Pin<&mut GSSmoother>, Pin<&mut Solver>>(s) }
 }

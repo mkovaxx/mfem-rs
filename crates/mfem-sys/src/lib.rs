@@ -1,398 +1,309 @@
-#[allow(clippy::needless_lifetimes)]
+#![allow(unsafe_op_in_unsafe_fn)]
+#![allow(clippy::all)]
+
+use autocxx::prelude::*;
+
+include_cpp! {
+    // "mfem.hpp" is included by ffi_autocxx.hpp with some pragma to
+    // disable spurious warnings.
+    #include "ffi_autocxx.hpp"
+    safety!(unsafe)
+    generate!("acxx::MFEM_USE_EXCEPTIONS")
+    generate!("acxx::NumBasisTypes")
+    generate!("mfem::ErrorAction")
+    generate!("mfem::set_error_action")
+    generate!("mfem::Vector")
+
+    generate!("mfem::Operator") // abstract class
+    generate!("mfem::Operator_Type") // Operator::Type
+    generate!("mfem::Matrix")
+
+    generate!("mfem::Element_Type")
+
+    generate!("mfem::Mesh")
+    generate!("acxx::Mesh_bdr_attributes")
+    generate!("mfem::Mesh_Operation")       // Mesh::Operation
+    generate!("mfem::Mesh_FaceTopology")    // Mesh::FaceTopology
+    generate!("mfem::Mesh_ElementLocation") // Mesh::ElementLocation
+    generate!("mfem::Mesh_ElementConformity") // Mesh::ElementConformity
+    generate!("mfem::Mesh_FaceInfoTag")     // Mesh::FaceInfoTag
+
+    generate!("mfem::FiniteElement")
+    generate!("mfem::FiniteElement_MapType")
+    generate!("mfem::FiniteElementCollection")
+    generate!("mfem::L2_FECollection")
+    generate!("mfem::H1_FECollection")
+    generate!("mfem::H1_Trace_FECollection")
+    generate!("mfem::RT_FECollection")
+    generate!("mfem::ND_FECollection")
+    generate!("mfem::CrouzeixRaviartFECollection")
+
+    generate!("mfem::Ordering")
+    // `FiniteElementSpace::VarOrderBits` is protected types which is not
+    // handled well.  But Ok if generated indirectly.
+    // generate!("mfem::FiniteElementSpace")
+    generate!("acxx::FES_new")
+
+    generate!("mfem::GridFunction")
+    generate!("acxx::GridFunction_OwnFEC") // immutable version
+    generate!("mfem::LinearFormIntegrator")
+    generate!("mfem::BilinearFormIntegrator")
+    generate!("mfem::LinearForm")
+    generate!("mfem::BilinearForm")
+    generate!("mfem::MixedBilinearForm")
+
+    generate!("mfem::Coefficient")
+    generate!("mfem::ConstantCoefficient")
+    generate!("mfem::FunctionCoefficient")
+    generate!("mfem::GridFunctionCoefficient")
+    generate!("mfem::InnerProductCoefficient")
+    generate!("mfem::VectorCoefficient")
+    generate!("mfem::VectorConstantCoefficient")
+    generate!("mfem::VectorFunctionCoefficient")
+
+    generate!("mfem::OperatorHandle")
+    generate!("mfem::LinearFormIntegrator")
+    generate!("mfem::DeltaLFIntegrator")
+    generate!("mfem::DomainLFIntegrator")
+    generate!("mfem::BilinearFormIntegrator")
+    generate!("mfem::DiffusionIntegrator")
+    generate!("mfem::ConvectionIntegrator")
+
+    generate!("mfem::SparseMatrix")
+    generate!("mfem::Solver")
+    generate!("mfem::GSSmoother")
+    generate!("mfem::PermuteFaceL2")
+}
+
+// We handle abstract classes in this module.  One can convert
+// pointers to these classes and use the methods.  This avoids writing
+// C++ code to apply all the abstract methods to the sub-classes.
 #[cxx::bridge]
-pub mod ffi {
-    #[repr(i32)]
-    enum BasisType {
-        Invalid = -1,
-        /// Open type
-        GaussLegendre = 0,
-        /// Closed type
-        GaussLobatto = 1,
-        /// Bernstein polynomials
-        Positive = 2,
-        /// Nodes: x_i = (i+1)/(n+1), i=0,...,n-1
-        OpenUniform = 3,
-        /// Nodes: x_i = i/(n-1),     i=0,...,n-1
-        ClosedUniform = 4,
-        /// Nodes: x_i = (i+1/2)/n,   i=0,...,n-1
-        OpenHalfUniform = 5,
-        /// Serendipity basis (squares / cubes)
-        Serendipity = 6,
-        /// Closed GaussLegendre
-        ClosedGL = 7,
-        /// Integrated GLL indicator functions
-        IntegratedGLL = 8,
-        /// Keep track of maximum types to prevent hard-coding
-        NumBasisTypes = 9,
-    }
-
-    #[repr(i32)]
-    enum OrderingType {
-        /// loop first over the nodes (inner loop) then over the vector dimension (outer loop)
-        /// symbolically it can be represented as: XXX...,YYY...,ZZZ...
-        byNODES,
-        /// loop first over the vector dimension (inner loop) then over the nodes (outer loop)
-        /// symbolically it can be represented as: XYZ,XYZ,XYZ,...
-        byVDIM,
-    }
-
-    #[derive(Debug)]
-    #[repr(i32)]
-    enum OperatorType {
-        /// ID for the base class Operator, i.e. any type.
-        ANY_TYPE,
-        /// ID for class SparseMatrix.
-        MFEM_SPARSEMAT,
-        /// ID for class HypreParMatrix.
-        Hypre_ParCSR,
-        /// ID for class PetscParMatrix, MATAIJ format.
-        PETSC_MATAIJ,
-        /// ID for class PetscParMatrix, MATIS format.
-        PETSC_MATIS,
-        /// ID for class PetscParMatrix, MATSHELL format.
-        PETSC_MATSHELL,
-        /// ID for class PetscParMatrix, MATNEST format.
-        PETSC_MATNEST,
-        /// ID for class PetscParMatrix, MATHYPRE format.
-        PETSC_MATHYPRE,
-        /// ID for class PetscParMatrix, unspecified format.
-        PETSC_MATGENERIC,
-        /// ID for class ComplexOperator.
-        Complex_Operator,
-        /// ID for class ComplexSparseMatrix.
-        MFEM_ComplexSparseMat,
-        /// ID for class ComplexHypreParMatrix.
-        Complex_Hypre_ParCSR,
-        /// ID for class ComplexDenseMatrix.
-        Complex_DenseMat,
-        /// ID for class BlockMatrix.
-        MFEM_Block_Matrix,
-        /// ID for the base class BlockOperator.
-        MFEM_Block_Operator,
-    }
-
+mod ffi_cxx {
     unsafe extern "C++" {
-        // https://github.com/dtolnay/cxx/issues/280
+        include!("ffi_cxx.hpp");
 
-        include!("mfem-sys/include/wrapper.hpp");
-
-        //////////////
-        // ArrayInt //
-        //////////////
-
-        type ArrayInt;
-
-        #[cxx_name = "construct_unique"]
-        fn ArrayInt_ctor() -> UniquePtr<ArrayInt>;
-
-        #[cxx_name = "construct_unique"]
-        fn ArrayInt_ctor_size(asize: i32) -> UniquePtr<ArrayInt>;
-
-        fn GetData(self: &ArrayInt) -> *const i32;
+        #[cxx_name = "mfem_Array_int_AutocxxConcrete"]
+        type ArrayInt = crate::ffi::mfem_Array_int_AutocxxConcrete;
+        #[cxx_name = "array_with_len"]
+        fn arrayint_with_len(size: i32) -> UniquePtr<ArrayInt>;
+        #[cxx_name = "array_copy"]
+        fn arrayint_copy(src: &ArrayInt) -> UniquePtr<ArrayInt>;
+        #[cxx_name = "array_from_slice"]
+        unsafe fn arrayint_from_slice(
+            data: *mut i32,
+            len: i32,
+            own_data: bool,
+        ) -> UniquePtr<ArrayInt>;
         fn Size(self: &ArrayInt) -> i32;
-        fn Max(self: &ArrayInt) -> i32;
-        fn ArrayInt_SetAll(array: Pin<&mut ArrayInt>, value: i32);
+        fn GetData(self: &ArrayInt) -> *const i32;
+        #[cxx_name = "GetData"]
+        fn GetDataMut(self: Pin<&mut ArrayInt>) -> *mut i32;
 
-        ////////////
-        // Vector //
-        ////////////
+        // mfem::Operator::Type.  mfem::Operator is not really a
+        // namespace but this is needed for the type Id to coincide with
+        // autocxx.  (We want that compatibility because, say,
+        // `OperatorHandle::Type` also return that type.)
+        #[namespace = "mfem::Operator"]
+        type Type = crate::Operator_Type;
+        #[namespace = "mfem"]
+        #[cxx_name = "Vector"]
+        type VectorCxx = crate::Vector;
+        type Operator;
 
-        type Vector;
+        fn GetType(self: &Operator) -> Type;
+        fn Height(self: &Operator) -> i32;
+        fn Width(self: &Operator) -> i32;
+        /// Safety: Virtual method.  Make sure it applied only to proper
+        /// sub-classes
+        unsafe fn RecoverFEMSolution(
+            self: Pin<&mut Operator>,
+            X: &VectorCxx,
+            b: &VectorCxx,
+            x: Pin<&mut VectorCxx>,
+        );
 
-        #[cxx_name = "construct_unique"]
-        fn Vector_ctor() -> UniquePtr<Vector>;
+        #[namespace = "mfem"]
+        #[cxx_name = "Mesh"]
+        type MeshCxx = crate::Mesh;
+        #[namespace = "mfem"]
+        #[cxx_name = "FiniteElementCollection"]
+        type FiniteElementCollectionCxx = crate::FiniteElementCollection;
 
-        /////////////////////////////
-        // FiniteElementCollection //
-        /////////////////////////////
-
-        type FiniteElementCollection;
-
-        fn Name(self: &FiniteElementCollection) -> *const c_char;
-
-        /////////////////////
-        // H1_FECollection //
-        /////////////////////
-
-        type H1_FECollection;
-
-        #[cxx_name = "construct_unique"]
-        fn H1_FECollection_ctor(
-            p: i32,
-            dim: i32,
-            btype: /*BasisType*/ i32,
-        ) -> UniquePtr<H1_FECollection>;
-
-        fn H1_FECollection_as_FEC(h1_fec: &H1_FECollection) -> &FiniteElementCollection;
-
-        //////////
-        // Mesh //
-        //////////
-
-        type Mesh;
-
-        #[cxx_name = "construct_unique"]
-        fn Mesh_ctor() -> UniquePtr<Mesh>;
-
-        #[cxx_name = "construct_unique"]
-        fn Mesh_ctor_file(
-            filename: &CxxString,
-            generate_edges: i32,
-            refine: i32,
-            fix_orientation: bool,
-        ) -> UniquePtr<Mesh>;
-
-        fn Dimension(self: &Mesh) -> i32;
-        fn GetNE(self: &Mesh) -> i32;
-        fn UniformRefinement(self: Pin<&mut Mesh>, ref_algo: i32);
-        fn Mesh_GetNodes(mesh: &Mesh) -> Result<&GridFunction>;
-        fn Mesh_bdr_attributes(mesh: &Mesh) -> &ArrayInt;
-        fn Save(self: &Mesh, fname: &CxxString, precision: i32);
-
-        ////////////////////////
-        // FiniteElementSpace //
-        ////////////////////////
-
-        type OrderingType;
-
-        type FiniteElementSpace<'mesh, 'fec>;
-
-        fn FiniteElementSpace_ctor<'mesh, 'fec>(
-            mesh: &'mesh Mesh,
-            fec: &'fec FiniteElementCollection,
-            vdim: i32,
-            ordering: OrderingType,
-        ) -> UniquePtr<FiniteElementSpace<'mesh, 'fec>>;
-
-        fn GetTrueVSize(self: &FiniteElementSpace) -> i32;
-
-        // This shim is needed because FiniteElementSpace::GetEssentialTrueDofs() isn't const
-        fn FiniteElementSpace_GetEssentialTrueDofs(
-            fespace: &FiniteElementSpace,
+        #[namespace = "mfem"]
+        #[cxx_name = "FiniteElementSpace"]
+        type FiniteElementSpaceCxx = crate::FiniteElementSpace;
+        fn Conforming(self: &FiniteElementSpaceCxx) -> bool;
+        fn Nonconforming(self: &FiniteElementSpaceCxx) -> bool;
+        fn GetEssentialVDofs(
+            self: &FiniteElementSpaceCxx,
+            bdr_attr_is_ess: &ArrayInt,
+            ess_vdofs: Pin<&mut ArrayInt>,
+            component: i32,
+        );
+        fn GetEssentialTrueDofs(
+            self: &FiniteElementSpaceCxx,
             bdr_attr_is_ess: &ArrayInt,
             ess_tdof_list: Pin<&mut ArrayInt>,
             component: i32,
         );
-
-        //////////////////
-        // GridFunction //
-        //////////////////
-
-        type GridFunction<'fes>;
-
-        fn GridFunction_as_Vector<'a>(grid_func: &'a GridFunction) -> &'a Vector;
-
-        fn GridFunction_as_mut_Vector<'a>(
-            grid_func: Pin<&'a mut GridFunction>,
-        ) -> Pin<&'a mut Vector>;
-
-        fn GridFunction_ctor_fes<'fes>(
-            fespace: &'fes FiniteElementSpace,
-        ) -> UniquePtr<GridFunction<'fes>>;
-
-        fn GridFunction_ProjectCoefficient(grid_func: Pin<&mut GridFunction>, coeff: &Coefficient);
-
-        fn GridFunction_OwnFEC<'a>(
-            grid_func: &'a GridFunction,
-        ) -> Result<&'a FiniteElementCollection>;
-        fn GridFunction_SetAll(grid_func: Pin<&mut GridFunction>, value: f64);
-
-        fn GridFunction_Save(grid_func: &GridFunction, fname: &CxxString, precision: i32);
-
-        ////////////////
-        // LinearForm //
-        ////////////////
-
-        type LinearForm<'fes>;
-
-        fn LinearForm_as_Vector<'a>(lf: &'a LinearForm) -> &'a Vector;
-
-        fn LinearForm_as_mut_Vector<'a>(lf: Pin<&'a mut LinearForm>) -> Pin<&'a mut Vector>;
-
-        fn LinearForm_ctor_fes<'fes>(
-            fespace: &'fes FiniteElementSpace,
-        ) -> UniquePtr<LinearForm<'fes>>;
-
-        fn LinearForm_AddDomainIntegrator(
-            lf: Pin<&mut LinearForm>,
-            lfi: UniquePtr<LinearFormIntegrator>,
+        fn GetBoundaryTrueDofs(
+            self: Pin<&mut FiniteElementSpaceCxx>,
+            boundary_dofs: Pin<&mut ArrayInt>,
+            component: i32,
         );
+        fn GetTrueVSize(self: &FiniteElementSpaceCxx) -> i32;
+        fn SetElementOrder(self: Pin<&mut FiniteElementSpaceCxx>, i: i32, p: i32);
+        fn GetElementOrder(self: &FiniteElementSpaceCxx, i: i32) -> i32;
+        fn IsVariableOrder(self: &FiniteElementSpaceCxx) -> bool;
+        fn GetMesh(self: &FiniteElementSpaceCxx) -> *mut MeshCxx;
+        fn GetVDim(self: &FiniteElementSpaceCxx) -> i32;
+        fn GetNDofs(self: &FiniteElementSpaceCxx) -> i32;
+        fn GetVSize(self: &FiniteElementSpaceCxx) -> i32;
+        fn FEColl(self: &FiniteElementSpaceCxx) -> *const FiniteElementCollectionCxx;
 
-        fn Assemble(self: Pin<&mut LinearForm>);
+        #[namespace = "mfem"]
+        type Element;
+        #[namespace = "mfem::Element"]
+        #[cxx_name = "Type"]
+        type Element_TypeCxx = crate::Element_Type;
+        fn GetType(self: &Element) -> Element_TypeCxx;
 
-        /////////////////
-        // Coefficient //
-        /////////////////
+        // autocxx does not bind any constructor of `FunctionCoefficient`.
+        // Moreover, we "enhance" the interface to allow to pass closures.
+        #[namespace = "mfem"]
+        #[cxx_name = "FunctionCoefficient"]
+        type FunctionCoefficientCxx = crate::FunctionCoefficient;
+        type c_void;
+        unsafe fn new_FunctionCoefficient(
+            f: unsafe fn(&VectorCxx, data: *mut c_void) -> f64,
+            data: *mut c_void,
+        ) -> UniquePtr<FunctionCoefficientCxx>;
 
-        type Coefficient;
+        #[namespace = "mfem"]
+        #[cxx_name = "Matrix"]
+        type MatrixCxx = crate::Matrix;
+        #[cxx_name = "upcast_to_operator"]
+        fn Matrix_to_operator<'a>(m: &'a MatrixCxx) -> &'a Operator;
+        #[cxx_name = "upcast_to_operator_mut"]
+        fn Matrix_to_operator_mut<'a>(m: Pin<&'a mut MatrixCxx>) -> Pin<&'a mut Operator>;
 
-        /////////////////////////
-        // ConstantCoefficient //
-        /////////////////////////
+        #[namespace = "mfem"]
+        #[cxx_name = "OperatorHandle"]
+        type OperatorHandleCxx = crate::OperatorHandle;
+        fn OperatorHandle_operator<'a>(o: &'a OperatorHandleCxx) -> &'a Operator;
+        fn OperatorHandle_operator_mut<'a>(
+            o: Pin<&'a mut OperatorHandleCxx>,
+        ) -> Pin<&'a mut Operator>;
 
-        type ConstantCoefficient;
-
-        #[cxx_name = "construct_unique"]
-        fn ConstantCoefficient_ctor(c: f64) -> UniquePtr<ConstantCoefficient>;
-
-        fn ConstantCoefficient_as_Coeff(coeff: &ConstantCoefficient) -> &Coefficient;
-
-        //////////////////////////
-        // LinearFormIntegrator //
-        //////////////////////////
-
-        type LinearFormIntegrator;
-
-        ////////////////////////
-        // DomainLFIntegrator //
-        ////////////////////////
-
-        type DomainLFIntegrator<'coeff>;
-
-        fn DomainLFIntegrator_ctor_ab<'coeff>(
-            coeff: &'coeff Coefficient,
-            a: i32,
-            b: i32,
-        ) -> UniquePtr<DomainLFIntegrator<'coeff>>;
-
-        fn DomainLFIntegrator_as_LFI<'coeff, 'a>(
-            domain_lfi: &'a DomainLFIntegrator<'coeff>,
-        ) -> &'a LinearFormIntegrator;
-
-        fn DomainLFIntegrator_into_LFI<'coeff>(
-            domain_lfi: UniquePtr<DomainLFIntegrator<'coeff>>,
-        ) -> UniquePtr<LinearFormIntegrator>;
-
-        //////////////////
-        // BilinearForm //
-        //////////////////
-
-        type BilinearForm<'fes>;
-
-        fn BilinearForm_ctor_fes<'fes>(
-            fespace: &'fes FiniteElementSpace,
-        ) -> UniquePtr<BilinearForm<'fes>>;
-
-        fn BilinearForm_AddDomainIntegrator(
-            bf: Pin<&mut BilinearForm>,
-            bfi: UniquePtr<BilinearFormIntegrator>,
-        );
-
-        fn Assemble(self: Pin<&mut BilinearForm>, skip_zeros: i32);
-
-        fn BilinearForm_FormLinearSystem(
-            a: &BilinearForm,
-            ess_tdof_list: &ArrayInt,
-            x: &Vector,
-            b: &Vector,
-            a_mat: Pin<&mut OperatorHandle>,
-            x_vec: Pin<&mut Vector>,
-            b_vec: Pin<&mut Vector>,
-        );
-
-        fn RecoverFEMSolution(
-            self: Pin<&mut BilinearForm>,
-            x_vec: &Vector,
-            b_vec: &Vector,
-            x: Pin<&mut Vector>,
-        );
-
-        ////////////////////////////
-        // BilinearFormIntegrator //
-        ////////////////////////////
-
-        type BilinearFormIntegrator;
-
-        /////////////////////////
-        // DiffusionIntegrator //
-        /////////////////////////
-
-        type DiffusionIntegrator<'coeff>;
-
-        fn DiffusionIntegrator_ctor<'coeff>(
-            coeff: &'coeff Coefficient,
-        ) -> UniquePtr<DiffusionIntegrator<'coeff>>;
-
-        fn DiffusionIntegrator_as_BFI<'coeff, 'a>(
-            diffusion_int: &'a DiffusionIntegrator<'coeff>,
-        ) -> &'a BilinearFormIntegrator;
-
-        fn DiffusionIntegrator_into_BFI<'coeff>(
-            diffusion_int: UniquePtr<DiffusionIntegrator<'coeff>>,
-        ) -> UniquePtr<BilinearFormIntegrator>;
-
-        ////////////////////
-        // OperatorHandle //
-        ////////////////////
-
-        type OperatorHandle;
-
-        #[cxx_name = "construct_unique"]
-        fn OperatorHandle_ctor() -> UniquePtr<OperatorHandle>;
-
-        fn Type(self: &OperatorHandle) -> OperatorType;
-        // TODO(mkovaxx): Detect when the pointer inside is nullptr
-        fn OperatorHandle_as_ref(handle: &OperatorHandle) -> &Operator;
-        fn OperatorHandle_try_as_SparseMatrix(handle: &OperatorHandle) -> Result<&SparseMatrix>;
-
-        //////////////////
-        // OperatorType //
-        //////////////////
-
-        type OperatorType;
-
-        //////////////
-        // Operator //
-        //////////////
-
-        type Operator;
-
-        fn Height(self: &Operator) -> i32;
-
-        //////////////////
-        // SparseMatrix //
-        //////////////////
-
-        type SparseMatrix;
-
-        #[cxx_name = "construct_unique"]
-        fn SparseMatrix_ctor() -> UniquePtr<SparseMatrix>;
-
-        ////////////
-        // Solver //
-        ////////////
-
-        type Solver;
-
-        ////////////////
-        // GSSmoother //
-        ////////////////
-
-        type GSSmoother<'mat>;
-
-        #[cxx_name = "construct_unique"]
-        fn GSSmoother_ctor<'mat>(
-            a: &'mat SparseMatrix,
-            t: i32,
-            it: i32,
-        ) -> UniquePtr<GSSmoother<'mat>>;
-
-        fn GSSmoother_as_mut_Solver<'a>(smoother: Pin<&'a mut GSSmoother>) -> Pin<&'a mut Solver>;
-
-        /////////
-        // PCG //
-        /////////
+        #[namespace = "mfem"]
+        #[cxx_name = "SparseMatrix"]
+        type SparseMatrixCxx = crate::SparseMatrix;
+        unsafe fn OperatorHandle_ref_SparseMatrix<'a>(
+            o: &'a OperatorHandleCxx,
+        ) -> &'a SparseMatrixCxx;
+        unsafe fn SparseMatrix_to_OperatorHandle<'a>(
+            o: *mut SparseMatrixCxx,
+        ) -> UniquePtr<OperatorHandleCxx>;
 
         #[allow(clippy::too_many_arguments)]
+        #[namespace = "mfem"]
+        #[cxx_name = "Solver"]
+        type SolverCxx = crate::Solver;
         fn PCG(
-            a_mat: &Operator,
-            solver: Pin<&mut Solver>,
-            b_vec: &Vector,
-            x_vec: Pin<&mut Vector>,
+            a: &Operator,
+            solver: Pin<&mut SolverCxx>,
+            b: &VectorCxx,
+            x: Pin<&mut VectorCxx>,
             print_iter: i32,
             max_num_iter: i32,
-            rtolerance: f64,
-            atolerance: f64,
+            rtol: f64,
+            atol: f64,
         );
+    }
+    impl UniquePtr<Operator> {}
+}
+
+// Import into scope all C++ symbols defined above.
+pub use ffi::acxx::*;
+pub use ffi::mfem::*;
+pub use ffi_cxx::*;
+
+use std::fmt::{Debug, Error, Formatter};
+
+impl Debug for Operator_Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        use Operator_Type::*;
+        write!(
+            f,
+            "{}",
+            match self {
+                ANY_TYPE => "ANY_TYPE",
+                MFEM_SPARSEMAT => "MFEM_SPARSEMAT",
+                Hypre_ParCSR => "Hypre_ParCSR",
+                PETSC_MATAIJ => "PETSC_MATAIJ",
+                PETSC_MATIS => "PETSC_MATIS",
+                PETSC_MATSHELL => "PETSC_MATSHELL",
+                PETSC_MATNEST => "PETSC_MATNEST",
+                PETSC_MATHYPRE => "PETSC_MATHYPRE",
+                PETSC_MATGENERIC => "PETSC_MATGENERIC",
+                Complex_Operator => "Complex_Operator",
+                MFEM_ComplexSparseMat => "MFEM_ComplexSparseMat",
+                Complex_Hypre_ParCSR => "Complex_Hypre_ParCSR",
+                Complex_DenseMat => "Complex_DenseMat",
+                MFEM_Block_Matrix => "MFEM_Block_Matrix",
+                MFEM_Block_Operator => "MFEM_Block_Operator",
+            }
+        )
+    }
+}
+
+pub enum BasisType {
+    //Invalid = -1,  // Removed, use Option<BasisType>
+    /// Open type.
+    GaussLegendre = 0,
+    /// Closed type.
+    GaussLobatto = 1,
+    /// Bernstein polynomials.
+    Positive = 2,
+    /// Nodes: x_i = (i+1)/(n+1), i=0,...,n-1
+    OpenUniform = 3,
+    /// Nodes: x_i = i/(n-1),     i=0,...,n-1.
+    ClosedUniform = 4,
+    /// Nodes: x_i = (i+1/2)/n,   i=0,...,n-1.
+    OpenHalfUniform = 5,
+    /// Serendipity basis (squares / cubes).
+    Serendipity = 6,
+    /// Closed GaussLegendre.
+    ClosedGL = 7,
+    /// Integrated GLL indicator functions.
+    IntegratedGLL = 8,
+    // NumBasisTypes = 9, see test right after.
+}
+
+#[cfg(test)]
+#[test]
+fn test_num_basis_types() {
+    assert_eq!(NumBasisTypes, 9);
+}
+
+impl TryFrom<c_int> for BasisType {
+    type Error = i32;
+
+    /// Try to convert the value into a [`BasisType`].  If it fails,
+    /// it returns the number as an error.
+    fn try_from(c_int(value): c_int) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(BasisType::GaussLegendre),
+            1 => Ok(BasisType::GaussLobatto),
+            2 => Ok(BasisType::Positive),
+            3 => Ok(BasisType::OpenUniform),
+            4 => Ok(BasisType::ClosedUniform),
+            5 => Ok(BasisType::OpenHalfUniform),
+            6 => Ok(BasisType::Serendipity),
+            7 => Ok(BasisType::ClosedGL),
+            8 => Ok(BasisType::IntegratedGLL),
+            _ => Err(value),
+        }
     }
 }

@@ -10,10 +10,11 @@ repository = "https://github.com/mkovaxx/mfem-rs"
 
 [dependencies]
 cxx = "1"
+autocxx = "0.27"
 
 [build-dependencies]
 cmake = "0.1"
-cxx-build = "1"
+autocxx-build = "0.27"
 mfem-cpp = { version = "0.3", path = "../mfem-cpp", optional = true }
 semver = "1.0.22"
 
