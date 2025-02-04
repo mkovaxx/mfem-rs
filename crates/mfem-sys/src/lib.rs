@@ -14,7 +14,7 @@ include_cpp! {
     generate!("mfem::set_error_action")
     generate!("mfem::Vector")
 
-    generate!("mfem::Operator") // abstract class
+    extern_cpp_opaque_type!("mfem::Operator", ffi_cxx::Operator)
     generate!("mfem::Operator_Type") // Operator::Type
     generate!("mfem::Matrix")
 
