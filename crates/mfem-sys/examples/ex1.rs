@@ -230,10 +230,12 @@ fn ConstantCoefficient_into_Coefficient(
 }
 
 fn LinearForm_as_Vector(x: &LinearForm) -> &Vector {
+    // LinearForm is a subclass of Vector.
     unsafe { std::mem::transmute::<&LinearForm, &Vector>(x) }
 }
 
 fn LinearForm_as_Vector_mut(x: Pin<&mut LinearForm>) -> Pin<&mut Vector> {
+    // LinearForm is a subclass of Vector.
     unsafe { std::mem::transmute::<Pin<&mut LinearForm>, Pin<&mut Vector>>(x) }
 }
 
@@ -249,5 +251,6 @@ fn slice_mut_of_Vector(v: Pin<&mut Vector>) -> &mut [f64] {
 }
 
 fn GSSmoother_as_mut_Solver(s: Pin<&mut GSSmoother>) -> Pin<&mut Solver> {
+    // GSSmoother is a subclass of Solver.
     unsafe { std::mem::transmute::<Pin<&mut GSSmoother>, Pin<&mut Solver>>(s) }
 }
