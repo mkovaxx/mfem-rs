@@ -12,6 +12,10 @@ else()
    find_package(mfem REQUIRED NAMES MFEM)
 endif()
 
+if (NOT DEFINED MFEM_INCLUDE_DIRS)
+  set(MFEM_INCLUDE_DIRS "")
+endif()
+
 file (WRITE ${CMAKE_BINARY_DIR}/mfem_info.txt
       "VERSION=${MFEM_VERSION}\n"
       "MFEM_LIBRARIES=${MFEM_LIBRARIES}\n"

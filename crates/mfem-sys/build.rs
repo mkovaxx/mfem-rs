@@ -1,5 +1,3 @@
-/// The list of used MFEM libraries which needs to be linked with.
-
 fn main() {
     let target = std::env::var("TARGET").expect("No TARGET environment variable defined");
     let is_windows = target.to_lowercase().contains("windows");
@@ -12,9 +10,6 @@ fn main() {
     );
 
     for lib in mfem_config.mfem_libs {
-        #[cfg(feature = "bundled")]
-        println!("cargo:rustc-link-lib=static={lib}");
-        #[cfg(not(feature = "bundled"))]
         println!("cargo:rustc-link-lib={lib}");
     }
 
