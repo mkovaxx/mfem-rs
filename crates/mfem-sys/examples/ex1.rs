@@ -91,7 +91,7 @@ fn main() {
         Some(ptr) => {
             let fec = ptr.as_ref().unwrap();
             // `H1_FECollection` is a subclass of `FiniteElementCollection`.
-            unsafe { std::intrinsics::transmute::<&H1_FECollection, &FiniteElementCollection>(fec) }
+            unsafe { std::mem::transmute::<&H1_FECollection, &FiniteElementCollection>(fec) }
         }
         None => {
             println!("Using isoparametric FEs");
@@ -226,22 +226,20 @@ fn slice_mut_of_array_int(a: Pin<&mut ArrayInt>) -> &mut [i32] {
 fn ConstantCoefficient_into_Coefficient(
     c: UniquePtr<ConstantCoefficient>,
 ) -> UniquePtr<Coefficient> {
-    unsafe {
-        std::intrinsics::transmute::<UniquePtr<ConstantCoefficient>, UniquePtr<Coefficient>>(c)
-    }
+    unsafe { std::mem::transmute::<UniquePtr<ConstantCoefficient>, UniquePtr<Coefficient>>(c) }
 }
 
 fn LinearForm_as_Vector(x: &LinearForm) -> &Vector {
-    unsafe { std::intrinsics::transmute::<&LinearForm, &Vector>(x) }
+    unsafe { std::mem::transmute::<&LinearForm, &Vector>(x) }
 }
 
 fn LinearForm_as_Vector_mut(x: Pin<&mut LinearForm>) -> Pin<&mut Vector> {
-    unsafe { std::intrinsics::transmute::<Pin<&mut LinearForm>, Pin<&mut Vector>>(x) }
+    unsafe { std::mem::transmute::<Pin<&mut LinearForm>, Pin<&mut Vector>>(x) }
 }
 
 fn GridFunction_as_Vector_mut(gf: Pin<&mut GridFunction>) -> Pin<&mut Vector> {
     // GridFunction is a subclass of Vector.
-    unsafe { std::intrinsics::transmute::<Pin<&mut GridFunction>, Pin<&mut Vector>>(gf) }
+    unsafe { std::mem::transmute::<Pin<&mut GridFunction>, Pin<&mut Vector>>(gf) }
 }
 
 fn slice_mut_of_Vector(v: Pin<&mut Vector>) -> &mut [f64] {
@@ -252,5 +250,5 @@ fn slice_mut_of_Vector(v: Pin<&mut Vector>) -> &mut [f64] {
 
 fn GSSmoother_as_mut_Solver(s: Pin<&mut GSSmoother>) -> Pin<&mut Solver> {
     // GSSmoother is a subclass of Solver
-    unsafe { std::intrinsics::transmute::<Pin<&mut GSSmoother>, Pin<&mut Solver>>(s) }
+    unsafe { std::mem::transmute::<Pin<&mut GSSmoother>, Pin<&mut Solver>>(s) }
 }
