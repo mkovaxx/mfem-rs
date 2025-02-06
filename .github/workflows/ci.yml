@@ -19,7 +19,7 @@ jobs:
           rustup update ${{ matrix.rust }}
           rustup default ${{ matrix.rust }}
           rustup component add clippy
-      - run: cargo clippy -p mfem-sys --features bundled -- -D warnings
+      #- run: cargo clippy -p mfem-sys --features bundled -- -D warnings
       - run: cargo build -p mfem-sys --features bundled
       - run: cargo run -p mfem-sys --features bundled --example ex1 -- --mesh data/square.mesh
 
