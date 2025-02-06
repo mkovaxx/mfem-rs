@@ -94,7 +94,8 @@ impl MfemConfig {
                     // Keep in sync with "MFEM/CMakeLists.txt".
                     "VERSION" => version = semver::Version::parse(val).ok(),
                     "MFEM_LIBRARIES" => {
-                        for l in val.split(" ") { // FIXME: Right delim?
+                        for l in val.split(" ") {
+                            // FIXME: Right delim?
                             mfem_libs.push(l.into());
                         }
                     }
@@ -114,8 +115,7 @@ impl MfemConfig {
             }
         }
 
-        if let (Some(version), Some(library_dir)) = (version, library_dir)
-        {
+        if let (Some(version), Some(library_dir)) = (version, library_dir) {
             if !version_req.matches(&version) {
                 #[cfg(feature = "bundled")]
                 panic!("Bundled MFEM found but version is not met (found {} but {} required). Please fix MFEM_VERSION in build script of `mfem-sys` crate or submodule mfem in `mfem-cpp` crate.",
