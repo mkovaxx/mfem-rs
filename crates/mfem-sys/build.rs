@@ -35,7 +35,7 @@ fn main() {
         .includes(mfem_config.include_dirs)
         .include("include");
     for f in mfem_config.cxx_flags {
-        build.flag_if_supported(f);
+        build.flag_if_supported(&f);
     }
 
     build.compile("wrapper");
