@@ -21,7 +21,7 @@ jobs:
           rustup component add clippy
       #- run: cargo clippy -p mfem-sys --features bundled -- -D warnings
       - run: cargo build -p mfem-sys --features bundled
-      - run: cargo run -p mfem-sys --features bundled --example ex1 -- --mesh crates/mfem-cpp/mfem/data/square.mesh
+      - run: cargo run -p mfem-sys --features bundled --example ex1 -- --mesh ../mfem-cpp/mfem/data/square.mesh
 
   build-osx:
     runs-on: macos-latest
@@ -39,7 +39,7 @@ jobs:
           rustup update ${{ matrix.rust }}
           rustup default ${{ matrix.rust }}
       - run: cargo build -p mfem-sys --features bundled
-      - run: cargo run -p mfem-sys --features bundled --example ex1 -- --mesh crates/mfem-cpp/mfem/data/square.mesh
+      - run: cargo run -p mfem-sys --features bundled --example ex1 -- --mesh ../mfem-cpp/mfem/data/square.mesh
 
   build-windows:
     runs-on: windows-latest
@@ -56,7 +56,7 @@ jobs:
           rustup update ${{ matrix.rust }}
           rustup default ${{ matrix.rust }}
       - run: cargo build -p mfem-sys --features bundled
-      - run: cargo run -p mfem-sys --features bundled --example ex1 --verbose -- --mesh crates/mfem-cpp/mfem/data/square.mesh
+      - run: cargo run -p mfem-sys --features bundled --example ex1 --verbose -- --mesh ../mfem-cpp/mfem/data/square.mesh
 
   fmt:
     name: Rust fmt
