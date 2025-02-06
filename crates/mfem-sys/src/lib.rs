@@ -1,3 +1,4 @@
+#[allow(clippy::needless_lifetimes)]
 #[cxx::bridge]
 pub mod ffi {
     #[repr(i32)]
@@ -382,6 +383,7 @@ pub mod ffi {
         // PCG //
         /////////
 
+        #[allow(clippy::too_many_arguments)]
         fn PCG(
             a_mat: &Operator,
             solver: Pin<&mut Solver>,
