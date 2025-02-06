@@ -22,6 +22,7 @@ file (WRITE ${CMAKE_BINARY_DIR}/mfem_info.txt
       "INCLUDE_DIRS=${MFEM_INCLUDE_DIRS}\n"
       "LIBRARY_DIR=${MFEM_LIBRARY_DIR}\n"
       "CXX_FLAGS=${MFEM_CXX_FLAGS}\n"
-)
+      "MFEM_USE_DOUBLE=${MFEM_USE_DOUBLE}"
+    )
 
 install (FILES ${CMAKE_BINARY_DIR}/mfem_info.txt TYPE DATA)

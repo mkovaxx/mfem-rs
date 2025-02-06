@@ -1,3 +1,5 @@
+use std::process::exit;
+
 fn main() {
     let target = std::env::var("TARGET").expect("No TARGET environment variable defined");
     let is_windows = target.to_lowercase().contains("windows");
@@ -106,6 +108,12 @@ impl MfemConfig {
                     "CXX_FLAGS" => {
                         for f in val.split(" ") {
                             mfem_config.cxx_flags.push(f.into());
+                        }
+                    }
+                    "MFEM_USE_DOUBLE" => {
+                        if !val.eq_ignore_ascii_case("on") {
+                            println!("cargo:error=MFEM must be compiled with double precision");
+                            exit(1);
                         }
                     }
                     _ => (),
