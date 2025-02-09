@@ -1,5 +1,10 @@
 #![allow(unsafe_op_in_unsafe_fn)]
 #![allow(clippy::all)]
+#![allow(
+    rustdoc::broken_intra_doc_links,
+    rustdoc::invalid_html_tags,
+    rustdoc::bare_urls
+)]
 
 use autocxx::prelude::*;
 
