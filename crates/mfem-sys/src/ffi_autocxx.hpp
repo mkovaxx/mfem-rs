@@ -4,8 +4,8 @@
 #include "mfem.hpp"
 #pragma GCC diagnostic pop
 
-#ifndef RUST_EXTRA_H
-#define RUST_EXTRA_H
+#ifndef RUST_AUTOCXX_H
+#define RUST_AUTOCXX_H
 
 using namespace mfem;
 
@@ -42,4 +42,4 @@ namespace acxx {
     }
 }
 
-#endif // RUST_EXTRA_H
+#endif // RUST_AUTOCXX_H
