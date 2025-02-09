@@ -55,7 +55,7 @@ using Element_Type = Element::Type;
 using c_void = void;
 
 std::unique_ptr<FunctionCoefficient>
-new_FunctionCoefficient(rust::Fn<double(mfem::Vector const &, void*)> f,
+FunctionCoefficient_new(rust::Fn<real_t(mfem::Vector const &, void*)> f,
                         void *d)
 {
   std::function<real_t(const Vector &)> F =

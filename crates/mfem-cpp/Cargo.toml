@@ -13,8 +13,5 @@ repository = "https://github.com/mkovaxx/mfem-rs"
 [build-dependencies]
 cmake = "0.1"
 
-# Adding an empty workspace table so `mfem-cpp` doesn't believe
-# it's in the parent workspace. This crate is excluded from
-# the top-level workspace because it takes quite awhile to
-# build and the crate doesn't change very often.
-#[workspace]
+[features]
+precision-f32 = []

@@ -1,5 +1,3 @@
-use std::process::exit;
-
 fn main() {
     let target = std::env::var("TARGET").expect("No TARGET environment variable defined");
     let is_windows = target.to_lowercase().contains("windows");
@@ -43,6 +41,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=src/ffi_autocxx.hpp");
     println!("cargo:rerun-if-changed=src/ffi_cxx.hpp");
+    println!("cargo:rerun-if-changed=MFEM/CMakeLists.txt ");
 }
 
 #[derive(Debug)]
@@ -61,21 +60,21 @@ impl MfemConfig {
         // Pre-installed MFEM will be checked for compatibility using semver rules.
         let version_req = semver::VersionReq::parse(">=4.6").expect("Invalid version constraint");
 
-        println!("cargo:rerun-if-env-changed=MFEM_DIR");
-
-        // Add path to bundled MFEM
-        #[cfg(feature = "bundled")]
+        #[cfg(any(feature = "bundled", feature = "bundled-f32"))]
         {
-            std::env::set_var("MFEM_DIR", mfem_cpp::mfem_path().as_os_str());
+            // For the `register_dep` of `cmake` to set
+            // `CMAKE_PREFIX_PATH` to the right directory.
+            std::env::set_var("DEP_MFEM_ROOT", mfem_cpp::mfem_path().as_os_str())
         }
+        println!("cargo:rerun-if-env-changed=DEP_MFEM_ROOT");
 
         let dst =
             std::panic::catch_unwind(|| cmake::Config::new("MFEM").register_dep("mfem").build());
 
-        #[cfg(feature = "bundled")]
+        #[cfg(any(feature = "bundled", feature = "bundled-f32"))]
         let dst = dst.expect("Bundled MFEM not found.");
 
-        #[cfg(not(feature = "bundled"))]
+        #[cfg(not(any(feature = "bundled", feature = "bundled-f32")))]
         let dst = dst.expect("Pre-installed MFEM not found.  You can use MFEM_DIR to point to its location. Alternatively, you can use `bundled` feature if you do not want to install MFEM system-wide.");
 
         let cfg = std::fs::read_to_string(dst.join("share").join("mfem_info.txt"))
@@ -110,12 +109,6 @@ impl MfemConfig {
                             mfem_config.cxx_flags.push(f.into());
                         }
                     }
-                    "MFEM_USE_DOUBLE" => {
-                        if !val.eq_ignore_ascii_case("on") {
-                            println!("cargo:error=MFEM must be compiled with double precision");
-                            exit(1);
-                        }
-                    }
                     _ => (),
                 }
             }
@@ -123,11 +116,11 @@ impl MfemConfig {
 
         if let Some(version) = version {
             if !version_req.matches(&version) {
-                #[cfg(feature = "bundled")]
+                #[cfg(any(feature = "bundled", feature = "bundled-f32"))]
                 panic!("Bundled MFEM found but version is not met (found {} but {} required). Please fix MFEM_VERSION in build script of `mfem-sys` crate or submodule mfem in `mfem-cpp` crate.",
                        version, version_req);
 
-                #[cfg(not(feature = "bundled"))]
+                #[cfg(not(any(feature = "bundled", feature = "bundled-f32")))]
                 panic!("Pre-installed MFEM found but version is not met (found {} but {} required). Please provide required version or use `bundled` feature.",
                        version, version_req);
             }

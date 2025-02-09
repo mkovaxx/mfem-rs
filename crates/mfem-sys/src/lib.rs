@@ -8,6 +8,7 @@ include_cpp! {
     // disable spurious warnings.
     #include "ffi_autocxx.hpp"
     safety!(unsafe)
+    generate_pod!("mfem::real_t")
     generate!("acxx::MFEM_USE_EXCEPTIONS")
     generate!("acxx::NumBasisTypes")
     generate!("mfem::ErrorAction")
@@ -83,6 +84,9 @@ mod ffi_cxx {
     unsafe extern "C++" {
         include!("ffi_cxx.hpp");
 
+        #[namespace = "mfem"]
+        #[cxx_name = "real_t"]
+        type real = crate::Real;
         #[cxx_name = "mfem_Array_int_AutocxxConcrete"]
         type ArrayInt = crate::ffi::mfem_Array_int_AutocxxConcrete;
         #[cxx_name = "array_with_len"]
@@ -175,8 +179,8 @@ mod ffi_cxx {
         #[cxx_name = "FunctionCoefficient"]
         type FunctionCoefficientCxx = crate::FunctionCoefficient;
         type c_void;
-        unsafe fn new_FunctionCoefficient(
-            f: unsafe fn(&VectorCxx, data: *mut c_void) -> f64,
+        unsafe fn FunctionCoefficient_new(
+            f: unsafe fn(&VectorCxx, data: *mut c_void) -> real,
             data: *mut c_void,
         ) -> UniquePtr<FunctionCoefficientCxx>;
 
@@ -217,8 +221,8 @@ mod ffi_cxx {
             x: Pin<&mut VectorCxx>,
             print_iter: i32,
             max_num_iter: i32,
-            rtol: f64,
-            atol: f64,
+            rtol: real,
+            atol: real,
         );
     }
     impl UniquePtr<Operator> {}
@@ -229,7 +233,31 @@ pub use ffi::acxx::*;
 pub use ffi::mfem::*;
 pub use ffi_cxx::*;
 
+use cxx::{type_id, ExternType};
 use std::fmt::{Debug, Error, Formatter};
+
+/// A wrapper for the floating point numbers of the precision of the
+/// MFEM library.
+// `real_t` is an alias from `autocxx`.
+#[repr(transparent)]
+pub struct Real(pub real_t);
+
+unsafe impl ExternType for Real {
+    type Id = type_id!("mfem::real_t");
+    type Kind = cxx::kind::Trivial;
+}
+
+impl From<real_t> for Real {
+    fn from(value: real_t) -> Self {
+        Real(value)
+    }
+}
+
+impl From<Real> for real_t {
+    fn from(value: Real) -> Self {
+        value.0
+    }
+}
 
 impl Debug for Operator_Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
