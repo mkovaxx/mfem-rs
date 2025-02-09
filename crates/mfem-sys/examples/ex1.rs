@@ -193,8 +193,8 @@ fn main() {
         x_vec.pin_mut(),
         1,
         200,
-        1e-12,
-        0.0,
+        1e-12.into(),
+        0.0.into(),
     );
     // 12. Recover the solution as a finite element grid function.
     a.pin_mut().RecoverFEMSolution(
@@ -242,7 +242,7 @@ fn GridFunction_as_Vector_mut(gf: Pin<&mut GridFunction>) -> Pin<&mut Vector> {
     unsafe { std::mem::transmute::<Pin<&mut GridFunction>, Pin<&mut Vector>>(gf) }
 }
 
-fn slice_mut_of_Vector(v: Pin<&mut Vector>) -> &mut [f64] {
+fn slice_mut_of_Vector(v: Pin<&mut Vector>) -> &mut [real_t] {
     let len: i32 = v.Size().into();
     let data = v.GetData();
     unsafe { slice::from_raw_parts_mut(data, len as usize) }
