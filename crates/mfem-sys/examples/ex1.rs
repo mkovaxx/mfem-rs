@@ -197,11 +197,10 @@ fn main() {
         0.0.into(),
     );
     // 12. Recover the solution as a finite element grid function.
-    a.pin_mut().RecoverFEMSolution(
-        &x_vec,
-        LinearForm_as_Vector(&b),
-        GridFunction_as_Vector_mut(x.pin_mut()),
-    );
+    a.pin_mut()
+        .RecoverFEMSolution(&x_vec, LinearForm_as_Vector(&b), unsafe {
+            Pin::new_unchecked(&mut *GridFunction_as_mut_Vector(x.as_mut_ptr()))
+        });
 
     // 13. Save the refined mesh and the solution. This output can be viewed later
     //     using GLVis: "glvis -m refined.mesh -g sol.gf".
