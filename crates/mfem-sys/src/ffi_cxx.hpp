@@ -16,11 +16,11 @@ Operator& upcast_to_operator_mut(T& x) {
     return x;
 }
 
-Operator const& OperatorHandle_operator(OperatorHandle const& x) {
+Operator const& OperatorHandle_oper(OperatorHandle const& x) {
     return *x;
 }
 
-Operator& OperatorHandle_operator_mut(OperatorHandle& x) {
+Operator& OperatorHandle_oper_mut(OperatorHandle& x) {
     return *x;
 }
 

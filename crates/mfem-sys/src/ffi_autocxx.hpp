@@ -19,6 +19,31 @@ namespace acxx {
         false;
 #endif
 
+#define SUBCLASS(A, B)                                          \
+    /* Functions to cast A to a superclass B. */                \
+    /* In C++ so errors can be caught by the type system */     \
+    B* A##_as_mut_##B(A* x) {                                   \
+        return static_cast<B*>(x);                              \
+    }                                                           \
+    const B* A##_as_##B(const A* x) {                           \
+        return static_cast<const B*>(x);                        \
+    }
+
+    SUBCLASS(GridFunction, Vector)
+    SUBCLASS(LinearForm, Vector)
+    SUBCLASS(ConstantCoefficient, Coefficient)
+    SUBCLASS(FunctionCoefficient, Coefficient)
+    SUBCLASS(GridFunctionCoefficient, Coefficient)
+    SUBCLASS(DomainLFIntegrator, DeltaLFIntegrator)
+    SUBCLASS(DeltaLFIntegrator, LinearFormIntegrator)
+    SUBCLASS(BilinearFormIntegrator, NonlinearFormIntegrator)
+    SUBCLASS(DiffusionIntegrator, BilinearFormIntegrator)
+    SUBCLASS(ConvectionIntegrator, BilinearFormIntegrator)
+    SUBCLASS(Solver, Operator)
+    SUBCLASS(MatrixInverse, Solver)
+    SUBCLASS(SparseSmoother, MatrixInverse)
+    SUBCLASS(GSSmoother, SparseSmoother)
+
     const int NumBasisTypes = mfem::BasisType::NumBasisTypes;
 
     Array<int> const& Mesh_bdr_attributes(Mesh const& mesh) {

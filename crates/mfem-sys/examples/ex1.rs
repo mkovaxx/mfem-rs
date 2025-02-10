@@ -176,7 +176,7 @@ fn main() {
 
     println!(
         "Size of linear system: {}",
-        OperatorHandle_operator(a_mat.as_ref().unwrap()).Height()
+        OperatorHandle_oper(a_mat.as_ref().unwrap()).Height()
     );
 
     dbg!(a_mat.Type());
@@ -187,7 +187,7 @@ fn main() {
     let mut m_mat = UniquePtr::emplace(GSSmoother::new1(a_sparse, c_int(0), c_int(1)));
     let solver = GSSmoother_as_mut_Solver(m_mat.pin_mut());
     PCG(
-        OperatorHandle_operator(&a_mat),
+        OperatorHandle_oper(&a_mat),
         solver,
         &b_vec,
         x_vec.pin_mut(),

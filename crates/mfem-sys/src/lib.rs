@@ -52,16 +52,26 @@ include_cpp! {
 
     generate!("mfem::GridFunction")
     generate!("acxx::GridFunction_OwnFEC") // immutable version
+    generate!("acxx::GridFunction_as_Vector")
+    generate!("acxx::GridFunction_as_mut_Vector")
     generate!("mfem::LinearFormIntegrator")
     generate!("mfem::BilinearFormIntegrator")
     generate!("mfem::LinearForm")
+    generate!("acxx::LinearForm_as_Vector")
+    generate!("acxx::LinearForm_as_mut_Vector")
     generate!("mfem::BilinearForm")
     generate!("mfem::MixedBilinearForm")
 
     generate!("mfem::Coefficient")
     generate!("mfem::ConstantCoefficient")
+    generate!("acxx::ConstantCoefficient_as_Coefficient")
+    generate!("acxx::ConstantCoefficient_as_mut_Coefficient")
     generate!("mfem::FunctionCoefficient")
+    generate!("acxx::FunctionCoefficient_as_Coefficient")
+    generate!("acxx::FunctionCoefficient_as_mut_Coefficient")
     generate!("mfem::GridFunctionCoefficient")
+    generate!("acxx::GridFunctionCoefficient_as_Coefficient")
+    generate!("acxx::GridFunctionCoefficient_as_mut_Coefficient")
     generate!("mfem::InnerProductCoefficient")
     generate!("mfem::VectorCoefficient")
     generate!("mfem::VectorConstantCoefficient")
@@ -71,13 +81,33 @@ include_cpp! {
     generate!("mfem::LinearFormIntegrator")
     generate!("mfem::DeltaLFIntegrator")
     generate!("mfem::DomainLFIntegrator")
+    generate!("acxx::DomainLFIntegrator_as_DeltaLFIntegrator")
+    generate!("acxx::DomainLFIntegrator_as_mut_DeltaLFIntegrator")
+    generate!("acxx::DeltaLFIntegrator_as_LinearFormIntegrator")
+    generate!("acxx::DeltaLFIntegrator_as_mut_LinearFormIntegrator")
     generate!("mfem::BilinearFormIntegrator")
+    generate!("acxx::BilinearFormIntegrator_as_NonlinearFormIntegrator")
+    generate!("acxx::BilinearFormIntegrator_as_mut_NonlinearFormIntegrator")
     generate!("mfem::DiffusionIntegrator")
+    generate!("acxx::DiffusionIntegrator_as_BilinearFormIntegrator")
+    generate!("acxx::DiffusionIntegrator_as_mut_BilinearFormIntegrator")
     generate!("mfem::ConvectionIntegrator")
+    generate!("acxx::ConvectionIntegrator_as_BilinearFormIntegrator")
+    generate!("acxx::ConvectionIntegrator_as_mut_BilinearFormIntegrator")
 
     generate!("mfem::SparseMatrix")
     generate!("mfem::Solver")
+    generate!("acxx::Solver_as_Operator")
+    generate!("acxx::Solver_as_mut_Operator")
+    generate!("mfem::MatrixInverse")
+    generate!("acxx::MatrixInverse_as_Solver")
+    generate!("acxx::MatrixInverse_as_mut_Solver")
+    generate!("mfem::SparseSmoother")
+    generate!("acxx::SparseSmoother_as_MatrixInverse")
+    generate!("acxx::SparseSmoother_as_mut_MatrixInverse")
     generate!("mfem::GSSmoother")
+    generate!("acxx::GSSmoother_as_SparseSmoother")
+    generate!("acxx::GSSmoother_as_mut_SparseSmoother")
     generate!("mfem::PermuteFaceL2")
 }
 
@@ -200,10 +230,8 @@ mod ffi_cxx {
         #[namespace = "mfem"]
         #[cxx_name = "OperatorHandle"]
         type OperatorHandleCxx = crate::OperatorHandle;
-        fn OperatorHandle_operator<'a>(o: &'a OperatorHandleCxx) -> &'a Operator;
-        fn OperatorHandle_operator_mut<'a>(
-            o: Pin<&'a mut OperatorHandleCxx>,
-        ) -> Pin<&'a mut Operator>;
+        fn OperatorHandle_oper<'a>(o: &'a OperatorHandleCxx) -> &'a Operator;
+        fn OperatorHandle_oper_mut<'a>(o: Pin<&'a mut OperatorHandleCxx>) -> Pin<&'a mut Operator>;
 
         #[namespace = "mfem"]
         #[cxx_name = "SparseMatrix"]
