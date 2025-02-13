@@ -144,7 +144,7 @@ fn main() {
     //    corresponding to fespace. Initialize x with initial guess of zero,
     //    which satisfies the boundary conditions.
     let mut x = UniquePtr::emplace(unsafe { GridFunction::new2(fespace.as_mut_ptr()) });
-    slice_mut_of_Vector(GridFunction_as_Vector_mut(x.pin_mut())).fill(0.0);
+    slice_mut_of_Vector(GridFunction_as_mut_Vector(x.pin_mut())).fill(0.0);
 
     // 9. Set up the bilinear form a(.,.) on the finite element space
     //    corresponding to the Laplacian operator -Delta, by adding the Diffusion
@@ -166,8 +166,8 @@ fn main() {
     let mut x_vec = UniquePtr::emplace(Vector::new());
     a.pin_mut().FormLinearSystem(
         &ess_tdof_list,
-        GridFunction_as_Vector_mut(x.pin_mut()),
-        LinearForm_as_Vector_mut(b.pin_mut()),
+        GridFunction_as_mut_Vector(x.pin_mut()),
+        LinearForm_as_mut_Vector(b.pin_mut()),
         a_mat.pin_mut(),
         x_vec.pin_mut(),
         b_vec.pin_mut(),
@@ -197,10 +197,11 @@ fn main() {
         0.0.into(),
     );
     // 12. Recover the solution as a finite element grid function.
-    a.pin_mut()
-        .RecoverFEMSolution(&x_vec, LinearForm_as_Vector(&b), unsafe {
-            Pin::new_unchecked(&mut *GridFunction_as_mut_Vector(x.as_mut_ptr()))
-        });
+    a.pin_mut().RecoverFEMSolution(
+        &x_vec,
+        LinearForm_as_Vector(&b),
+        GridFunction_as_mut_Vector(x.pin_mut()),
+    );
 
     // 13. Save the refined mesh and the solution. This output can be viewed later
     //     using GLVis: "glvis -m refined.mesh -g sol.gf".
@@ -230,17 +231,25 @@ fn ConstantCoefficient_into_Coefficient(
 
 fn LinearForm_as_Vector(x: &LinearForm) -> &Vector {
     // LinearForm is a subclass of Vector.
-    unsafe { std::mem::transmute::<&LinearForm, &Vector>(x) }
+    unsafe { &*mfem_sys::LinearForm_as_Vector(x as *const _) }
 }
 
-fn LinearForm_as_Vector_mut(x: Pin<&mut LinearForm>) -> Pin<&mut Vector> {
+fn LinearForm_as_mut_Vector(x: Pin<&mut LinearForm>) -> Pin<&mut Vector> {
     // LinearForm is a subclass of Vector.
-    unsafe { std::mem::transmute::<Pin<&mut LinearForm>, Pin<&mut Vector>>(x) }
+    unsafe {
+        Pin::new_unchecked(&mut *mfem_sys::LinearForm_as_mut_Vector(
+            x.get_unchecked_mut(),
+        ))
+    }
 }
 
-fn GridFunction_as_Vector_mut(gf: Pin<&mut GridFunction>) -> Pin<&mut Vector> {
+fn GridFunction_as_mut_Vector(gf: Pin<&mut GridFunction>) -> Pin<&mut Vector> {
     // GridFunction is a subclass of Vector.
-    unsafe { std::mem::transmute::<Pin<&mut GridFunction>, Pin<&mut Vector>>(gf) }
+    unsafe {
+        Pin::new_unchecked(&mut *mfem_sys::GridFunction_as_mut_Vector(
+            gf.get_unchecked_mut(),
+        ))
+    }
 }
 
 fn slice_mut_of_Vector(v: Pin<&mut Vector>) -> &mut [real_t] {
