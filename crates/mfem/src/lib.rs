@@ -51,14 +51,6 @@ impl<'a> ArrayIntRef<'a> {
     }
 }
 
-////////////////
-// VectorLike //
-////////////////
-
-pub trait VectorLike: AsBase<mfem_sys::Vector> + AsBaseMut<mfem_sys::Vector> {
-    // TODO(mkovaxx)
-}
-
 ////////////
 // Vector //
 ////////////
@@ -69,22 +61,8 @@ pub struct Vector {
 
 impl Vector {
     pub fn new() -> Self {
-        let inner = mfem_sys::Vector_ctor();
+        let inner = UniquePtr::emplace(Vector::new());
         Self { inner }
-    }
-}
-
-impl VectorLike for Vector {}
-
-impl AsBase<mfem_sys::Vector> for Vector {
-    fn as_base(&self) -> &mfem_sys::Vector {
-        &self.inner
-    }
-}
-
-impl AsBaseMut<mfem_sys::Vector> for Vector {
-    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Vector> {
-        self.inner.pin_mut()
     }
 }
 
