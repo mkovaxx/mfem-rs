@@ -46,26 +46,26 @@ where
 //////////////
 
 pub struct ArrayInt {
-    inner: UniquePtr<mfem_sys::ffi::ArrayInt>,
+    inner: UniquePtr<mfem_sys::ArrayInt>,
 }
 
 pub struct ArrayIntRef<'a> {
-    inner: &'a mfem_sys::ffi::ArrayInt,
+    inner: &'a mfem_sys::ArrayInt,
 }
 
 impl ArrayInt {
     pub fn new() -> Self {
-        let inner = mfem_sys::ffi::ArrayInt_ctor();
+        let inner = mfem_sys::ArrayInt_ctor();
         Self { inner }
     }
 
     pub fn with_len(len: usize) -> Self {
-        let inner = mfem_sys::ffi::ArrayInt_ctor_size(len as i32);
+        let inner = mfem_sys::ArrayInt_ctor_size(len as i32);
         Self { inner }
     }
 
     pub fn set_all(&mut self, value: i32) {
-        mfem_sys::ffi::ArrayInt_SetAll(self.inner.pin_mut(), value);
+        mfem_sys::ArrayInt_SetAll(self.inner.pin_mut(), value);
     }
 }
 
@@ -85,7 +85,7 @@ impl<'a> ArrayIntRef<'a> {
 // VectorLike //
 ////////////////
 
-pub trait VectorLike: AsBase<mfem_sys::ffi::Vector> + AsBaseMut<mfem_sys::ffi::Vector> {
+pub trait VectorLike: AsBase<mfem_sys::Vector> + AsBaseMut<mfem_sys::Vector> {
     // TODO(mkovaxx)
 }
 
@@ -94,26 +94,26 @@ pub trait VectorLike: AsBase<mfem_sys::ffi::Vector> + AsBaseMut<mfem_sys::ffi::V
 ////////////
 
 pub struct Vector {
-    inner: UniquePtr<mfem_sys::ffi::Vector>,
+    inner: UniquePtr<mfem_sys::Vector>,
 }
 
 impl Vector {
     pub fn new() -> Self {
-        let inner = mfem_sys::ffi::Vector_ctor();
+        let inner = mfem_sys::Vector_ctor();
         Self { inner }
     }
 }
 
 impl VectorLike for Vector {}
 
-impl AsBase<mfem_sys::ffi::Vector> for Vector {
-    fn as_base(&self) -> &mfem_sys::ffi::Vector {
+impl AsBase<mfem_sys::Vector> for Vector {
+    fn as_base(&self) -> &mfem_sys::Vector {
         &self.inner
     }
 }
 
-impl AsBaseMut<mfem_sys::ffi::Vector> for Vector {
-    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Vector> {
+impl AsBaseMut<mfem_sys::Vector> for Vector {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Vector> {
         self.inner.pin_mut()
     }
 }
@@ -123,12 +123,12 @@ impl AsBaseMut<mfem_sys::ffi::Vector> for Vector {
 //////////
 
 pub struct Mesh {
-    inner: UniquePtr<mfem_sys::ffi::Mesh>,
+    inner: UniquePtr<mfem_sys::Mesh>,
 }
 
 impl Mesh {
     pub fn new() -> Self {
-        let inner = mfem_sys::ffi::Mesh_ctor();
+        let inner = mfem_sys::Mesh_ctor();
         Self { inner }
     }
 
@@ -138,7 +138,7 @@ impl Mesh {
         let fix_orientation = true;
         let_cxx_string!(mesh_path = path);
         let inner =
-            mfem_sys::ffi::Mesh_ctor_file(&mesh_path, generate_edges, refine, fix_orientation);
+            mfem_sys::Mesh_ctor_file(&mesh_path, generate_edges, refine, fix_orientation);
         Ok(Self { inner })
     }
 
@@ -151,13 +151,13 @@ impl Mesh {
     }
 
     pub fn get_nodes<'fes, 'a: 'fes>(&'a self) -> Option<GridFunctionRef<'fes, 'a>> {
-        mfem_sys::ffi::Mesh_GetNodes(&self.inner)
+        mfem_sys::Mesh_GetNodes(&self.inner)
             .ok()
             .map(|grid_func| GridFunctionRef { inner: grid_func })
     }
 
     pub fn get_bdr_attributes<'a>(&'a self) -> ArrayIntRef<'a> {
-        let inner = mfem_sys::ffi::Mesh_bdr_attributes(&self.inner);
+        let inner = mfem_sys::Mesh_bdr_attributes(&self.inner);
         ArrayIntRef { inner }
     }
 
@@ -183,13 +183,13 @@ pub enum RefAlgo {
     B = 1,
 }
 
-pub use mfem_sys::ffi::BasisType;
+pub use mfem_sys::BasisType;
 
 /////////////////////////////
 // FiniteElementCollection //
 /////////////////////////////
 
-pub trait FiniteElementCollection: AsBase<mfem_sys::ffi::FiniteElementCollection> {
+pub trait FiniteElementCollection: AsBase<mfem_sys::FiniteElementCollection> {
     fn get_name(&self) -> String {
         let ptr = self.as_base().Name();
         assert!(!ptr.is_null());
@@ -198,28 +198,28 @@ pub trait FiniteElementCollection: AsBase<mfem_sys::ffi::FiniteElementCollection
     }
 }
 
-impl FiniteElementCollection for mfem_sys::ffi::FiniteElementCollection {}
+impl FiniteElementCollection for mfem_sys::FiniteElementCollection {}
 
 /////////////////////
 // H1_FECollection //
 /////////////////////
 
 pub struct H1FeCollection {
-    inner: UniquePtr<mfem_sys::ffi::H1_FECollection>,
+    inner: UniquePtr<mfem_sys::H1_FECollection>,
 }
 
 impl H1FeCollection {
     pub fn new(p: i32, dim: i32, btype: BasisType) -> Self {
-        let inner = mfem_sys::ffi::H1_FECollection_ctor(p, dim, btype.repr);
+        let inner = mfem_sys::H1_FECollection_ctor(p, dim, btype.repr);
         Self { inner }
     }
 }
 
 impl FiniteElementCollection for H1FeCollection {}
 
-impl AsBase<mfem_sys::ffi::FiniteElementCollection> for H1FeCollection {
-    fn as_base(&self) -> &mfem_sys::ffi::FiniteElementCollection {
-        mfem_sys::ffi::H1_FECollection_as_FEC(&self.inner)
+impl AsBase<mfem_sys::FiniteElementCollection> for H1FeCollection {
+    fn as_base(&self) -> &mfem_sys::FiniteElementCollection {
+        mfem_sys::H1_FECollection_as_FEC(&self.inner)
     }
 }
 
@@ -227,10 +227,10 @@ impl AsBase<mfem_sys::ffi::FiniteElementCollection> for H1FeCollection {
 // FiniteElementSpace //
 ////////////////////////
 
-pub use mfem_sys::ffi::OrderingType;
+pub use mfem_sys::OrderingType;
 
 pub struct FiniteElementSpace<'mesh, 'fec> {
-    inner: UniquePtr<mfem_sys::ffi::FiniteElementSpace<'mesh, 'fec>>,
+    inner: UniquePtr<mfem_sys::FiniteElementSpace<'mesh, 'fec>>,
 }
 
 impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
@@ -241,7 +241,7 @@ impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
         ordering: OrderingType,
     ) -> Self {
         let inner =
-            mfem_sys::ffi::FiniteElementSpace_ctor(&mesh.inner, &fec.as_base(), vdim, ordering);
+            mfem_sys::FiniteElementSpace_ctor(&mesh.inner, &fec.as_base(), vdim, ordering);
         Self { inner }
     }
 
@@ -255,7 +255,7 @@ impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
         ess_tdof_list: &mut ArrayInt,
         component: Option<usize>,
     ) {
-        mfem_sys::ffi::FiniteElementSpace_GetEssentialTrueDofs(
+        mfem_sys::FiniteElementSpace_GetEssentialTrueDofs(
             &self.inner,
             &bdr_attr_is_ess.inner,
             ess_tdof_list.inner.pin_mut(),
@@ -269,16 +269,16 @@ impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
 //////////////////
 
 pub struct GridFunction<'fes> {
-    inner: UniquePtr<mfem_sys::ffi::GridFunction<'fes>>,
+    inner: UniquePtr<mfem_sys::GridFunction<'fes>>,
 }
 
 pub struct GridFunctionRef<'fes, 'a> {
-    inner: &'a mfem_sys::ffi::GridFunction<'fes>,
+    inner: &'a mfem_sys::GridFunction<'fes>,
 }
 
 impl<'fes> GridFunction<'fes> {
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-        let inner = mfem_sys::ffi::GridFunction_ctor_fes(&fespace.inner);
+        let inner = mfem_sys::GridFunction_ctor_fes(&fespace.inner);
         Self { inner }
     }
 
@@ -288,22 +288,22 @@ impl<'fes> GridFunction<'fes> {
     ///
     /// Note that this is usually interpolation at the degrees of freedom in each element (not L2 projection).
     pub fn project_coefficient(&mut self, coeff: &dyn Coefficient) {
-        mfem_sys::ffi::GridFunction_ProjectCoefficient(self.inner.pin_mut(), coeff.as_base());
+        mfem_sys::GridFunction_ProjectCoefficient(self.inner.pin_mut(), coeff.as_base());
     }
 
     pub fn set_all(&mut self, value: f64) {
-        mfem_sys::ffi::GridFunction_SetAll(self.inner.pin_mut(), value);
+        mfem_sys::GridFunction_SetAll(self.inner.pin_mut(), value);
     }
 
     pub fn save_to_file(&self, path: &str, precision: i32) {
         let_cxx_string!(fname = path);
-        mfem_sys::ffi::GridFunction_Save(&self.inner, &fname, precision);
+        mfem_sys::GridFunction_Save(&self.inner, &fname, precision);
     }
 }
 
 impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
     pub fn get_own_fec(&self) -> Option<&dyn FiniteElementCollection> {
-        mfem_sys::ffi::GridFunction_OwnFEC(self.inner)
+        mfem_sys::GridFunction_OwnFEC(self.inner)
             .ok()
             .map(|fec| fec as &dyn FiniteElementCollection)
     }
@@ -311,15 +311,15 @@ impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
 
 impl<'fes> VectorLike for GridFunction<'fes> {}
 
-impl<'fes> AsBase<mfem_sys::ffi::Vector> for GridFunction<'fes> {
-    fn as_base(&self) -> &mfem_sys::ffi::Vector {
-        mfem_sys::ffi::GridFunction_as_Vector(&self.inner)
+impl<'fes> AsBase<mfem_sys::Vector> for GridFunction<'fes> {
+    fn as_base(&self) -> &mfem_sys::Vector {
+        mfem_sys::GridFunction_as_Vector(&self.inner)
     }
 }
 
-impl<'fes> AsBaseMut<mfem_sys::ffi::Vector> for GridFunction<'fes> {
-    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Vector> {
-        mfem_sys::ffi::GridFunction_as_mut_Vector(self.inner.pin_mut())
+impl<'fes> AsBaseMut<mfem_sys::Vector> for GridFunction<'fes> {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Vector> {
+        mfem_sys::GridFunction_as_mut_Vector(self.inner.pin_mut())
     }
 }
 
@@ -328,12 +328,12 @@ impl<'fes> AsBaseMut<mfem_sys::ffi::Vector> for GridFunction<'fes> {
 ////////////////
 
 pub struct LinearForm<'fes> {
-    inner: UniquePtr<mfem_sys::ffi::LinearForm<'fes>>,
+    inner: UniquePtr<mfem_sys::LinearForm<'fes>>,
 }
 
 impl<'fes> LinearForm<'fes> {
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-        let inner = mfem_sys::ffi::LinearForm_ctor_fes(&fespace.inner);
+        let inner = mfem_sys::LinearForm_ctor_fes(&fespace.inner);
         Self { inner }
     }
 
@@ -341,7 +341,7 @@ impl<'fes> LinearForm<'fes> {
     where
         Lfi: LinearFormIntegrator,
     {
-        mfem_sys::ffi::LinearForm_AddDomainIntegrator(self.inner.pin_mut(), lfi.into_base());
+        mfem_sys::LinearForm_AddDomainIntegrator(self.inner.pin_mut(), lfi.into_base());
     }
 
     pub fn assemble(&mut self) {
@@ -351,15 +351,15 @@ impl<'fes> LinearForm<'fes> {
 
 impl<'fes> VectorLike for LinearForm<'fes> {}
 
-impl<'fes> AsBase<mfem_sys::ffi::Vector> for LinearForm<'fes> {
-    fn as_base(&self) -> &mfem_sys::ffi::Vector {
-        mfem_sys::ffi::LinearForm_as_Vector(&self.inner)
+impl<'fes> AsBase<mfem_sys::Vector> for LinearForm<'fes> {
+    fn as_base(&self) -> &mfem_sys::Vector {
+        mfem_sys::LinearForm_as_Vector(&self.inner)
     }
 }
 
-impl<'fes> AsBaseMut<mfem_sys::ffi::Vector> for LinearForm<'fes> {
-    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Vector> {
-        mfem_sys::ffi::LinearForm_as_mut_Vector(self.inner.pin_mut())
+impl<'fes> AsBaseMut<mfem_sys::Vector> for LinearForm<'fes> {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Vector> {
+        mfem_sys::LinearForm_as_mut_Vector(self.inner.pin_mut())
     }
 }
 
@@ -367,7 +367,7 @@ impl<'fes> AsBaseMut<mfem_sys::ffi::Vector> for LinearForm<'fes> {
 // Coefficient //
 /////////////////
 
-pub trait Coefficient: AsBase<mfem_sys::ffi::Coefficient> {
+pub trait Coefficient: AsBase<mfem_sys::Coefficient> {
     // TODO(mkovaxx)
 }
 
@@ -376,21 +376,21 @@ pub trait Coefficient: AsBase<mfem_sys::ffi::Coefficient> {
 /////////////////////////
 
 pub struct ConstantCoefficient {
-    inner: UniquePtr<mfem_sys::ffi::ConstantCoefficient>,
+    inner: UniquePtr<mfem_sys::ConstantCoefficient>,
 }
 
 impl ConstantCoefficient {
     pub fn new(value: f64) -> Self {
-        let inner = mfem_sys::ffi::ConstantCoefficient_ctor(value);
+        let inner = mfem_sys::ConstantCoefficient_ctor(value);
         Self { inner }
     }
 }
 
 impl Coefficient for ConstantCoefficient {}
 
-impl AsBase<mfem_sys::ffi::Coefficient> for ConstantCoefficient {
-    fn as_base(&self) -> &mfem_sys::ffi::Coefficient {
-        mfem_sys::ffi::ConstantCoefficient_as_Coeff(&self.inner)
+impl AsBase<mfem_sys::Coefficient> for ConstantCoefficient {
+    fn as_base(&self) -> &mfem_sys::Coefficient {
+        mfem_sys::ConstantCoefficient_as_Coeff(&self.inner)
     }
 }
 
@@ -399,8 +399,8 @@ impl AsBase<mfem_sys::ffi::Coefficient> for ConstantCoefficient {
 //////////////////////////
 
 pub trait LinearFormIntegrator:
-    AsBase<mfem_sys::ffi::LinearFormIntegrator>
-    + IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
+    AsBase<mfem_sys::LinearFormIntegrator>
+    + IntoBase<UniquePtr<mfem_sys::LinearFormIntegrator>>
 {
     // TODO(mkovaxx)
 }
@@ -410,29 +410,29 @@ pub trait LinearFormIntegrator:
 ////////////////////////
 
 pub struct DomainLFIntegrator<'coeff> {
-    inner: UniquePtr<mfem_sys::ffi::DomainLFIntegrator<'coeff>>,
+    inner: UniquePtr<mfem_sys::DomainLFIntegrator<'coeff>>,
 }
 
 impl<'coeff> DomainLFIntegrator<'coeff> {
     pub fn new(coeff: &'coeff dyn Coefficient, a: i32, b: i32) -> Self {
-        let inner = mfem_sys::ffi::DomainLFIntegrator_ctor_ab(coeff.as_base(), a, b);
+        let inner = mfem_sys::DomainLFIntegrator_ctor_ab(coeff.as_base(), a, b);
         Self { inner }
     }
 }
 
 impl<'coeff> LinearFormIntegrator for DomainLFIntegrator<'coeff> {}
 
-impl<'coeff> AsBase<mfem_sys::ffi::LinearFormIntegrator> for DomainLFIntegrator<'coeff> {
-    fn as_base(&self) -> &mfem_sys::ffi::LinearFormIntegrator {
-        mfem_sys::ffi::DomainLFIntegrator_as_LFI(&self.inner)
+impl<'coeff> AsBase<mfem_sys::LinearFormIntegrator> for DomainLFIntegrator<'coeff> {
+    fn as_base(&self) -> &mfem_sys::LinearFormIntegrator {
+        mfem_sys::DomainLFIntegrator_as_LFI(&self.inner)
     }
 }
 
-impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
+impl<'coeff> IntoBase<UniquePtr<mfem_sys::LinearFormIntegrator>>
     for DomainLFIntegrator<'coeff>
 {
-    fn into_base(self) -> UniquePtr<mfem_sys::ffi::LinearFormIntegrator> {
-        mfem_sys::ffi::DomainLFIntegrator_into_LFI(self.inner)
+    fn into_base(self) -> UniquePtr<mfem_sys::LinearFormIntegrator> {
+        mfem_sys::DomainLFIntegrator_into_LFI(self.inner)
     }
 }
 
@@ -441,12 +441,12 @@ impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::LinearFormIntegrator>>
 //////////////////
 
 pub struct BilinearForm<'fes> {
-    inner: UniquePtr<mfem_sys::ffi::BilinearForm<'fes>>,
+    inner: UniquePtr<mfem_sys::BilinearForm<'fes>>,
 }
 
 impl<'fes> BilinearForm<'fes> {
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-        let inner = mfem_sys::ffi::BilinearForm_ctor_fes(&fespace.inner);
+        let inner = mfem_sys::BilinearForm_ctor_fes(&fespace.inner);
         Self { inner }
     }
 
@@ -454,7 +454,7 @@ impl<'fes> BilinearForm<'fes> {
     where
         Bfi: BilinearFormIntegrator,
     {
-        mfem_sys::ffi::BilinearForm_AddDomainIntegrator(self.inner.pin_mut(), bfi.into_base());
+        mfem_sys::BilinearForm_AddDomainIntegrator(self.inner.pin_mut(), bfi.into_base());
     }
 
     pub fn assemble(&mut self, skip_zeros: bool) {
@@ -475,7 +475,7 @@ impl<'fes> BilinearForm<'fes> {
         X: VectorLike,
         B: VectorLike,
     {
-        mfem_sys::ffi::BilinearForm_FormLinearSystem(
+        mfem_sys::BilinearForm_FormLinearSystem(
             &self.inner,
             &ess_tdof_list.inner,
             &x.as_base(),
@@ -502,8 +502,8 @@ impl<'fes> BilinearForm<'fes> {
 ////////////////////////////
 
 pub trait BilinearFormIntegrator:
-    AsBase<mfem_sys::ffi::BilinearFormIntegrator>
-    + IntoBase<UniquePtr<mfem_sys::ffi::BilinearFormIntegrator>>
+    AsBase<mfem_sys::BilinearFormIntegrator>
+    + IntoBase<UniquePtr<mfem_sys::BilinearFormIntegrator>>
 {
     // TODO(mkovaxx)
 }
@@ -513,29 +513,29 @@ pub trait BilinearFormIntegrator:
 /////////////////////////
 
 pub struct DiffusionIntegrator<'coeff> {
-    inner: UniquePtr<mfem_sys::ffi::DiffusionIntegrator<'coeff>>,
+    inner: UniquePtr<mfem_sys::DiffusionIntegrator<'coeff>>,
 }
 
 impl<'coeff> DiffusionIntegrator<'coeff> {
     pub fn new(coeff: &'coeff dyn Coefficient) -> Self {
-        let inner = mfem_sys::ffi::DiffusionIntegrator_ctor(coeff.as_base());
+        let inner = mfem_sys::DiffusionIntegrator_ctor(coeff.as_base());
         Self { inner }
     }
 }
 
 impl<'coeff> BilinearFormIntegrator for DiffusionIntegrator<'coeff> {}
 
-impl<'coeff> AsBase<mfem_sys::ffi::BilinearFormIntegrator> for DiffusionIntegrator<'coeff> {
-    fn as_base(&self) -> &mfem_sys::ffi::BilinearFormIntegrator {
-        mfem_sys::ffi::DiffusionIntegrator_as_BFI(&self.inner)
+impl<'coeff> AsBase<mfem_sys::BilinearFormIntegrator> for DiffusionIntegrator<'coeff> {
+    fn as_base(&self) -> &mfem_sys::BilinearFormIntegrator {
+        mfem_sys::DiffusionIntegrator_as_BFI(&self.inner)
     }
 }
 
-impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::BilinearFormIntegrator>>
+impl<'coeff> IntoBase<UniquePtr<mfem_sys::BilinearFormIntegrator>>
     for DiffusionIntegrator<'coeff>
 {
-    fn into_base(self) -> UniquePtr<mfem_sys::ffi::BilinearFormIntegrator> {
-        mfem_sys::ffi::DiffusionIntegrator_into_BFI(self.inner)
+    fn into_base(self) -> UniquePtr<mfem_sys::BilinearFormIntegrator> {
+        mfem_sys::DiffusionIntegrator_into_BFI(self.inner)
     }
 }
 
@@ -543,7 +543,7 @@ impl<'coeff> IntoBase<UniquePtr<mfem_sys::ffi::BilinearFormIntegrator>>
 // Operator //
 //////////////
 
-pub trait Operator: AsBase<mfem_sys::ffi::Operator> {
+pub trait Operator: AsBase<mfem_sys::Operator> {
     fn height(&self) -> i32 {
         self.as_base().Height()
     }
@@ -553,15 +553,15 @@ pub trait Operator: AsBase<mfem_sys::ffi::Operator> {
 // OperatorHandle //
 ////////////////////
 
-pub use mfem_sys::ffi::OperatorType;
+pub use mfem_sys::OperatorType;
 
 pub struct OperatorHandle {
-    inner: UniquePtr<mfem_sys::ffi::OperatorHandle>,
+    inner: UniquePtr<mfem_sys::OperatorHandle>,
 }
 
 impl OperatorHandle {
     pub fn new() -> Self {
-        let inner = mfem_sys::ffi::OperatorHandle_ctor();
+        let inner = mfem_sys::OperatorHandle_ctor();
         Self { inner }
     }
 
@@ -572,9 +572,9 @@ impl OperatorHandle {
 
 impl Operator for OperatorHandle {}
 
-impl AsBase<mfem_sys::ffi::Operator> for OperatorHandle {
-    fn as_base(&self) -> &mfem_sys::ffi::Operator {
-        mfem_sys::ffi::OperatorHandle_as_ref(&self.inner)
+impl AsBase<mfem_sys::Operator> for OperatorHandle {
+    fn as_base(&self) -> &mfem_sys::Operator {
+        mfem_sys::OperatorHandle_as_ref(&self.inner)
     }
 }
 
@@ -583,7 +583,7 @@ impl AsBase<mfem_sys::ffi::Operator> for OperatorHandle {
 //////////////////
 
 pub struct SparseMatrix {
-    inner: UniquePtr<mfem_sys::ffi::SparseMatrix>,
+    inner: UniquePtr<mfem_sys::SparseMatrix>,
 }
 
 impl<'a> TryFrom<OperatorHandle> for SparseMatrix {
@@ -595,7 +595,7 @@ impl<'a> TryFrom<OperatorHandle> for SparseMatrix {
 }
 
 pub struct SparseMatrixRef<'a> {
-    inner: &'a mfem_sys::ffi::SparseMatrix,
+    inner: &'a mfem_sys::SparseMatrix,
 }
 
 impl<'a> TryFrom<&'a OperatorHandle> for SparseMatrixRef<'a> {
@@ -604,7 +604,7 @@ impl<'a> TryFrom<&'a OperatorHandle> for SparseMatrixRef<'a> {
 
     fn try_from(value: &'a OperatorHandle) -> Result<Self, Self::Error> {
         let inner =
-            mfem_sys::ffi::OperatorHandle_try_as_SparseMatrix(&value.inner).map_err(|_| {
+            mfem_sys::OperatorHandle_try_as_SparseMatrix(&value.inner).map_err(|_| {
                 MfemError::OperatorHandleTypeMismatch(
                     OperatorType::MFEM_SPARSEMAT,
                     value.get_type(),
@@ -618,7 +618,7 @@ impl<'a> TryFrom<&'a OperatorHandle> for SparseMatrixRef<'a> {
 // Solver //
 ////////////
 
-pub trait Solver: AsBaseMut<mfem_sys::ffi::Solver> {
+pub trait Solver: AsBaseMut<mfem_sys::Solver> {
     // TODO(mkovaxx)
 }
 
@@ -627,21 +627,21 @@ pub trait Solver: AsBaseMut<mfem_sys::ffi::Solver> {
 ////////////////
 
 pub struct GsSmoother<'mat> {
-    inner: UniquePtr<mfem_sys::ffi::GSSmoother<'mat>>,
+    inner: UniquePtr<mfem_sys::GSSmoother<'mat>>,
 }
 
 impl<'mat> GsSmoother<'mat> {
     pub fn new(a: &SparseMatrixRef<'mat>, t: i32, it: i32) -> Self {
-        let inner = mfem_sys::ffi::GSSmoother_ctor(a.inner, t, it);
+        let inner = mfem_sys::GSSmoother_ctor(a.inner, t, it);
         Self { inner }
     }
 }
 
 impl<'mat> Solver for GsSmoother<'mat> {}
 
-impl<'mat> AsBaseMut<mfem_sys::ffi::Solver> for GsSmoother<'mat> {
-    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::ffi::Solver> {
-        mfem_sys::ffi::GSSmoother_as_mut_Solver(self.inner.pin_mut())
+impl<'mat> AsBaseMut<mfem_sys::Solver> for GsSmoother<'mat> {
+    fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Solver> {
+        mfem_sys::GSSmoother_as_mut_Solver(self.inner.pin_mut())
     }
 }
 
@@ -662,7 +662,7 @@ pub fn solve_with_pcg<Op, So>(
     Op: Operator,
     So: Solver,
 {
-    mfem_sys::ffi::PCG(
+    mfem_sys::PCG(
         a_mat.as_base(),
         solver.as_base_mut(),
         &b_vec.inner,
