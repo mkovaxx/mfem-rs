@@ -1,3 +1,6 @@
+use std::ops::Deref;
+use std::ops::DerefMut;
+
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
@@ -66,6 +69,10 @@ impl Vector {
     }
 }
 
+pub struct VectorRef<'a> {
+    inner: &'a mfem_sys::Vector,
+}
+
 //////////
 // Mesh //
 //////////
@@ -76,7 +83,7 @@ pub struct Mesh {
 
 impl Mesh {
     pub fn new() -> Self {
-        let inner = mfem_sys::Mesh_ctor();
+        let inner = mfem_sys::Mesh::new();
         Self { inner }
     }
 
@@ -86,7 +93,7 @@ impl Mesh {
         let fix_orientation = true;
         let_cxx_string!(mesh_path = path);
         let inner =
-            mfem_sys::Mesh_ctor_file(&mesh_path, generate_edges, refine, fix_orientation);
+            mfem_sys::Mesh::new6(&mesh_path, generate_edges, refine, fix_orientation);
         Ok(Self { inner })
     }
 
@@ -99,9 +106,12 @@ impl Mesh {
     }
 
     pub fn get_nodes<'fes, 'a: 'fes>(&'a self) -> Option<GridFunctionRef<'fes, 'a>> {
-        mfem_sys::Mesh_GetNodes(&self.inner)
-            .ok()
-            .map(|grid_func| GridFunctionRef { inner: grid_func })
+        let grid_func = self.inner.GetNodes2();
+        if !grid_func.is_null() {
+            Some(GridFunctionRef { inner: grid_func })
+        } else {
+            None
+        }
     }
 
     pub fn get_bdr_attributes<'a>(&'a self) -> ArrayIntRef<'a> {
@@ -137,16 +147,35 @@ pub use mfem_sys::BasisType;
 // FiniteElementCollection //
 /////////////////////////////
 
-pub trait FiniteElementCollection: AsBase<mfem_sys::FiniteElementCollection> {
+pub struct FiniteElementCollection {
+    inner: UniquePtr<mfem_sys::FiniteElementCollection>,
+}
+
+pub struct FiniteElementCollectionRef<'a> {
+    inner: &'a mfem_sys::FiniteElementCollection,
+}
+
+impl Deref for FiniteElementCollection {
+    type Target = FiniteElementCollectionRef<'a>;
+    fn deref(&self) -> &Self::Target {
+        todo!()
+    }
+}
+
+impl DerefMut for FiniteElementCollection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        todo!()
+    }
+}
+
+impl<'a> FiniteElementCollectionRef<'a> {
     fn get_name(&self) -> String {
-        let ptr = self.as_base().Name();
+        let ptr = self.Name();
         assert!(!ptr.is_null());
         let name = unsafe { std::ffi::CStr::from_ptr(ptr) };
         name.to_owned().into_string().expect("Valid string")
     }
 }
-
-impl FiniteElementCollection for mfem_sys::FiniteElementCollection {}
 
 /////////////////////
 // H1_FECollection //
@@ -158,12 +187,18 @@ pub struct H1FeCollection {
 
 impl H1FeCollection {
     pub fn new(p: i32, dim: i32, btype: BasisType) -> Self {
-        let inner = mfem_sys::H1_FECollection_ctor(p, dim, btype.repr);
+        let inner = mfem_sys::H1_FECollection::new(p, dim, btype.repr);
         Self { inner }
     }
 }
 
-impl FiniteElementCollection for H1FeCollection {}
+impl Deref for H1FeCollection {
+    type Target = FiniteElementCollectionRef;
+
+    fn deref(&self) -> &Self::Target {
+        FiniteElementCollectionRef
+    }
+}
 
 impl AsBase<mfem_sys::FiniteElementCollection> for H1FeCollection {
     fn as_base(&self) -> &mfem_sys::FiniteElementCollection {
@@ -178,7 +213,7 @@ impl AsBase<mfem_sys::FiniteElementCollection> for H1FeCollection {
 pub use mfem_sys::Ordering_Type as OrderingType;
 
 pub struct FiniteElementSpace<'mesh, 'fec> {
-    inner: UniquePtr<mfem_sys::FiniteElementSpace<'mesh, 'fec>>,
+    inner: UniquePtr<mfem_sys::FiniteElementSpace>,
 }
 
 impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
@@ -217,16 +252,16 @@ impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
 //////////////////
 
 pub struct GridFunction<'fes> {
-    inner: UniquePtr<mfem_sys::GridFunction<'fes>>,
+    inner: UniquePtr<mfem_sys::GridFunction>,
 }
 
-pub struct GridFunctionRef<'fes, 'a> {
-    inner: &'a mfem_sys::GridFunction<'fes>,
+pub struct GridFunctionRef<'a, 'fes> {
+    inner: &'a mfem_sys::GridFunction,
 }
 
 impl<'fes> GridFunction<'fes> {
-    pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-        let inner = mfem_sys::GridFunction_ctor_fes(&fespace.inner);
+    pub fn new(fespace: &'fes mut FiniteElementSpace) -> Self {
+        let inner = unsafe { mfem_sys::GridFunction::new2(&fespace.inner.pin_mut()) };
         Self { inner }
     }
 
@@ -235,33 +270,34 @@ impl<'fes> GridFunction<'fes> {
     /// The projection computation depends on the choice of the [`FiniteElementSpace`] `fespace`.
     ///
     /// Note that this is usually interpolation at the degrees of freedom in each element (not L2 projection).
-    pub fn project_coefficient(&mut self, coeff: &dyn Coefficient) {
-        mfem_sys::GridFunction_ProjectCoefficient(self.inner.pin_mut(), coeff.as_base());
+    pub fn project_coefficient<Coeff: Deref<Target = Coefficient>>(&mut self, coeff: Coeff) {
+        self.inner.pin_mut().ProjectCoefficient5(coeff.inner);
     }
 
     pub fn set_all(&mut self, value: f64) {
-        mfem_sys::GridFunction_SetAll(self.inner.pin_mut(), value);
+        let vector: &mut Vector = self.inner.pin_mut().as_mut();
+        vector.set_all(value);
     }
 
     pub fn save_to_file(&self, path: &str, precision: i32) {
         let_cxx_string!(fname = path);
-        mfem_sys::GridFunction_Save(&self.inner, &fname, precision);
+        unsafe { self.inner.Save1(fname, precision); }
     }
 }
 
 impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
-    pub fn get_own_fec(&self) -> Option<&dyn FiniteElementCollection> {
+    pub fn get_own_fec(&self) -> Option<&FiniteElementCollection> {
         mfem_sys::GridFunction_OwnFEC(self.inner)
             .ok()
             .map(|fec| fec as &dyn FiniteElementCollection)
     }
 }
 
-impl<'fes> VectorLike for GridFunction<'fes> {}
+impl<'fes, 'a> Deref for GridFunctionRef<'fes, 'a> {
+    type Target = VectorRef<'a>;
 
-impl<'fes> AsBase<mfem_sys::Vector> for GridFunction<'fes> {
-    fn as_base(&self) -> &mfem_sys::Vector {
-        mfem_sys::GridFunction_as_Vector(&self.inner)
+    fn deref(&self) -> &Self::Target {
+        VectorRef { inner: unsafe { mfem_sys::GridFunction_as_Vector(&self.inner) } }
     }
 }
 
