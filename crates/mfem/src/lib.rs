@@ -2,45 +2,6 @@ use cxx::memory::UniquePtrTarget;
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
-trait AsBase<T> {
-    fn as_base(&self) -> &T;
-}
-
-trait AsBaseMut<T> {
-    fn as_base_mut(&mut self) -> std::pin::Pin<&mut T>;
-}
-
-trait IntoBase<T> {
-    fn into_base(self) -> T;
-}
-
-// Every type T is also its own base type
-impl<T> AsBase<T> for T {
-    fn as_base(&self) -> &T {
-        self
-    }
-}
-
-// Every type T is also its own base type
-impl<T> AsBaseMut<T> for UniquePtr<T>
-where
-    T: UniquePtrTarget,
-{
-    fn as_base_mut(&mut self) -> std::pin::Pin<&mut T> {
-        self.pin_mut()
-    }
-}
-
-// Every type T is also its own base type
-impl<T> IntoBase<UniquePtr<T>> for UniquePtr<T>
-where
-    T: UniquePtrTarget,
-{
-    fn into_base(self) -> UniquePtr<T> {
-        self
-    }
-}
-
 //////////////
 // ArrayInt //
 //////////////
