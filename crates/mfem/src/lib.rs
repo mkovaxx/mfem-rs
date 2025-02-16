@@ -1,4 +1,3 @@
-use cxx::memory::UniquePtrTarget;
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
@@ -16,17 +15,21 @@ pub struct ArrayIntRef<'a> {
 
 impl ArrayInt {
     pub fn new() -> Self {
-        let inner = mfem_sys::ArrayInt_ctor();
+        let inner = mfem_sys::arrayint_with_len(0);
         Self { inner }
     }
 
     pub fn with_len(len: usize) -> Self {
-        let inner = mfem_sys::ArrayInt_ctor_size(len as i32);
+        let inner = mfem_sys::arrayint_with_len(len as i32);
         Self { inner }
     }
 
     pub fn set_all(&mut self, value: i32) {
-        mfem_sys::ArrayInt_SetAll(self.inner.pin_mut(), value);
+        // TODO: mfem_sys::ArrayInt_SetAll(self.inner.pin_mut(), value);
+        let slice: &mut [i32] = self.as_slice_mut();
+        for entry in slice {
+            *entry = value;
+        }
     }
 }
 
@@ -35,6 +38,12 @@ impl<'a> ArrayIntRef<'a> {
         let data = self.inner.GetData();
         let size = self.inner.Size() as usize;
         unsafe { std::slice::from_raw_parts(data, size) }
+    }
+
+    pub fn as_slice_mut(&self) -> &mut [i32] {
+        let data = self.inner.GetDataMut();
+        let size = self.inner.Size() as usize;
+        unsafe { std::slice::from_raw_parts_mut(data, size) }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &i32> {
