@@ -21,7 +21,7 @@ jobs:
           rustup component add clippy
       - run: cargo clippy -p mfem-sys --features bundled -- -D warnings
       - run: cargo build -p mfem-sys --features bundled
-      - run: cargo run -p mfem-sys --features bundled --example ex1 -- --mesh data/square.mesh
+      - run: cargo run -p mfem --features bundled --example ex1 -- --mesh data/square.mesh
 
   build-osx:
     runs-on: macos-latest
