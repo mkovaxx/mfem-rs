@@ -175,7 +175,7 @@ impl AsBase<mfem_sys::FiniteElementCollection> for H1FeCollection {
 // FiniteElementSpace //
 ////////////////////////
 
-pub use mfem_sys::OrderingType;
+pub use mfem_sys::Ordering_Type as OrderingType;
 
 pub struct FiniteElementSpace<'mesh, 'fec> {
     inner: UniquePtr<mfem_sys::FiniteElementSpace<'mesh, 'fec>>,
@@ -501,7 +501,7 @@ pub trait Operator: AsBase<mfem_sys::Operator> {
 // OperatorHandle //
 ////////////////////
 
-pub use mfem_sys::OperatorType;
+pub use mfem_sys::Operator_Type as OperatorType;
 
 pub struct OperatorHandle {
     inner: UniquePtr<mfem_sys::OperatorHandle>,
