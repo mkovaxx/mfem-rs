@@ -21,7 +21,7 @@ See the `README.md` file of each crate for more information.
 
 ## Talks
 
-Talk at the MFEM Community Workshop 2024:
+Talk at the [MFEM Community Workshop 2024](https://mfem.org/workshop):
 
 [![MFEM Workshop 2024 | Rust Wrapper](https://img.youtube.com/vi/4X8Q06kKcFA/0.jpg)](https://www.youtube.com/watch?v=4X8Q06kKcFA)
 
