@@ -27,4 +27,4 @@ Talk at the MFEM Community Workshop 2024:
 
 Longer and more detailed talk at the [Tokyo Rust](https://www.tokyorust.org) meetup:
 
-[![MFEM Workshop 2024 | Rust Wrapper](https://img.youtube.com/vi/2xBVQczO8_Y/0.jpg)](https://www.youtube.com/watch?v=2xBVQczO8_Y)
+[![Wrapping C++ (MFEM) in Rust](https://img.youtube.com/vi/2xBVQczO8_Y/0.jpg)](https://www.youtube.com/watch?v=2xBVQczO8_Y)
