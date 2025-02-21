@@ -18,3 +18,13 @@ This is a monorepo with the following 3 `cargo` packages in a workspace:
   Provides the C++ MFEM library as a `cargo` package.
 
 See the `README.md` file of each crate for more information.
+
+## Talks
+
+Talk at the [MFEM Community Workshop 2024](https://mfem.org/workshop):
+
+[![MFEM Workshop 2024 | Rust Wrapper](https://img.youtube.com/vi/4X8Q06kKcFA/0.jpg)](https://www.youtube.com/watch?v=4X8Q06kKcFA)
+
+Longer and more detailed talk at the [Tokyo Rust](https://www.tokyorust.org) meetup:
+
+[![Wrapping C++ (MFEM) in Rust](https://img.youtube.com/vi/2xBVQczO8_Y/0.jpg)](https://www.youtube.com/watch?v=2xBVQczO8_Y)
