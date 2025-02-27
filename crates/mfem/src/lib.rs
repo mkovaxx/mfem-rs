@@ -1,33 +1,46 @@
+use autocxx::c_int;
+use autocxx::prelude::Emplace;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::pin::*;
-use autocxx::c_int;
-use autocxx::prelude::Emplace;
 
-use cxx::memory::UniquePtrTarget;
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
-#[repr(transparent)]
-pub struct Owned<T: UniquePtrTarget> {
-    inner: UniquePtr<T>,
+trait ThinWrapper {
+    type Inner;
+
+    fn from_ref(r: &Self::Inner) -> &Self;
+    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self;
+
+    fn into_ref(&self) -> &Self::Inner;
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner>;
 }
 
 //////////////
 // ArrayInt //
 //////////////
 
-impl Owned<mfem_sys::ArrayInt> {
+#[repr(transparent)]
+struct OwnedArrayInt {
+    inner: UniquePtr<mfem_sys::ArrayInt>,
+}
+
+impl OwnedArrayInt {
     pub fn new() -> Self {
-        Self { inner: mfem_sys::arrayint_with_len(0) }
+        Self {
+            inner: mfem_sys::arrayint_with_len(0),
+        }
     }
 
     pub fn with_len(len: usize) -> Self {
-        Self { inner: mfem_sys::arrayint_with_len(len as i32) }
+        Self {
+            inner: mfem_sys::arrayint_with_len(len as i32),
+        }
     }
 }
 
-impl Deref for Owned<mfem_sys::ArrayInt> {
+impl Deref for OwnedArrayInt {
     type Target = ArrayInt;
 
     fn deref(&self) -> &Self::Target {
@@ -35,7 +48,7 @@ impl Deref for Owned<mfem_sys::ArrayInt> {
     }
 }
 
-impl DerefMut for Owned<mfem_sys::ArrayInt> {
+impl DerefMut for OwnedArrayInt {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.inner.as_mut_ptr().cast() }
     }
@@ -44,6 +57,26 @@ impl DerefMut for Owned<mfem_sys::ArrayInt> {
 #[repr(transparent)]
 pub struct ArrayInt {
     inner: *mut mfem_sys::ArrayInt,
+}
+
+impl ThinWrapper for ArrayInt {
+    type Inner = mfem_sys::ArrayInt;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
 }
 
 impl ArrayInt {
@@ -57,17 +90,16 @@ impl ArrayInt {
 
     pub fn as_slice(&self) -> &[i32] {
         unsafe {
-            let data = (*self.inner).GetData();
-            let size = (*self.inner).Size() as usize;
+            let data = self.into_ref().GetData();
+            let size = self.into_ref().Size() as usize;
             std::slice::from_raw_parts(data, size)
         }
     }
 
     pub fn as_slice_mut(&mut self) -> &mut [i32] {
         unsafe {
-            let pin = Pin::new_unchecked(&mut *self.inner);
-            let data = pin.GetDataMut();
-            let size = (*self.inner).Size() as usize;
+            let data = self.into_pin_mut().GetDataMut();
+            let size = self.into_ref().Size() as usize;
             std::slice::from_raw_parts_mut(data, size)
         }
     }
@@ -100,63 +132,102 @@ impl ArrayInt {
 // Mesh //
 //////////
 
-pub struct Mesh {
-    inner: *mut mfem_sys::Mesh,
+#[repr(transparent)]
+struct OwnedMesh {
+    inner: UniquePtr<mfem_sys::Mesh>,
 }
 
-impl Owned<mfem_sys::Mesh> {
+impl OwnedMesh {
     pub fn new() -> Self {
-        Self { inner: UniquePtr::emplace(mfem_sys::MeshCxx::new1()) }
+        Self {
+            inner: UniquePtr::emplace(mfem_sys::MeshCxx::new1()),
+        }
     }
 
     pub fn from_file(path: &str) -> Self {
-        let generate_edges = c_int(1);
-        let refine = c_int(1);
+        let generate_edges = 1;
+        let refine = 1;
         let fix_orientation = true;
         let_cxx_string!(mesh_path = path);
-        let inner = UniquePtr::emplace(mfem_sys::Mesh::LoadFromFile(&mesh_path, generate_edges, refine, fix_orientation));
+        let inner = UniquePtr::emplace(mfem_sys::Mesh::LoadFromFile(
+            &mesh_path,
+            c_int(generate_edges),
+            c_int(refine),
+            fix_orientation,
+        ));
         Self { inner }
     }
 }
 
+impl Deref for OwnedMesh {
+    type Target = Mesh;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.inner.as_ptr().cast() }
+    }
+}
+
+impl DerefMut for OwnedMesh {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.inner.as_mut_ptr().cast() }
+    }
+}
+
+#[repr(transparent)]
+pub struct Mesh {
+    inner: *mut mfem_sys::Mesh,
+}
+
+impl ThinWrapper for Mesh {
+    type Inner = mfem_sys::Mesh;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
 impl Mesh {
-    pub(crate) fn from_ref(r: &mfem_sys::Mesh) -> &Self {
-        unsafe { std::mem::transmute(r) }
-    }
-
-    pub(crate) fn from_ref_mut(r: &mut mfem_sys::Mesh) -> &mut Self {
-        unsafe { std::mem::transmute(r) }
-    }
-
     pub fn dimension(&self) -> i32 {
-        unsafe { (*self.inner).Dimension().into() }
+        self.into_ref().Dimension().into()
     }
 
     pub fn get_num_elems(&self) -> i32 {
-        unsafe { (*self.inner).GetNE().into() }
+        self.into_ref().GetNE().into()
     }
 
-    pub fn get_nodes(&self) -> Option<GridFunction> {
-        let grid_func = unsafe { (*self.inner).GetNodes2().cast_mut() };
+    pub fn get_nodes(&self) -> Option<&GridFunction> {
+        let grid_func = self.into_ref().GetNodes2().cast_mut();
         if !grid_func.is_null() {
-            Some(GridFunction { inner: grid_func })
+            Some(GridFunction::from_ref(unsafe { &*grid_func }))
         } else {
             None
         }
     }
 
     pub fn get_bdr_attributes(&self) -> &ArrayInt {
-        let inner: *const mfem_sys::ArrayInt = unsafe { mfem_sys::Mesh_bdr_attributes(&*self.inner) };
-        ArrayInt { inner: inner.cast_mut() }
+        ArrayInt::from_ref(mfem_sys::Mesh_bdr_attributes(self.into_ref()))
     }
 
     pub fn uniform_refinement(&mut self, ref_algo: RefAlgo) {
-        self.inner.pin_mut().UniformRefinement(ref_algo as i32);
+        self.into_pin_mut()
+            .UniformRefinement1(c_int(ref_algo as i32));
     }
 
     pub fn save_to_file(&self, path: &str, precision: i32) {
         let_cxx_string!(fname = path);
-        self.inner.Save(&fname, precision);
+        self.into_ref().Save(&fname, c_int(precision));
     }
 }
 
@@ -284,6 +355,26 @@ pub use mfem_sys::BasisType;
 
 pub struct GridFunction {
     inner: *mut mfem_sys::GridFunction,
+}
+
+impl ThinWrapper for GridFunction {
+    type Inner = mfem_sys::GridFunction;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
 }
 
 // impl<'fes> GridFunction<'fes> {
