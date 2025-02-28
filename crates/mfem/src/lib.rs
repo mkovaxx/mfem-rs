@@ -23,7 +23,7 @@ trait ThinWrapper {
 //////////////
 
 #[repr(transparent)]
-struct OwnedArrayInt {
+pub struct OwnedArrayInt {
     inner: UniquePtr<mfem_sys::ArrayInt>,
 }
 
@@ -431,6 +431,20 @@ impl OwnedFiniteElementSpace {
     }
 }
 
+impl Deref for OwnedFiniteElementSpace {
+    type Target = FiniteElementSpace;
+
+    fn deref(&self) -> &Self::Target {
+        FiniteElementSpace::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedFiniteElementSpace {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        FiniteElementSpace::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
 pub struct FiniteElementSpace {
     inner: *mut mfem_sys::FiniteElementSpace,
 }
@@ -556,31 +570,57 @@ impl DerefMut for GridFunction {
     }
 }
 
-// ////////////////
-// // LinearForm //
-// ////////////////
+////////////////
+// LinearForm //
+////////////////
 
-// pub struct LinearForm<'fes> {
-//     inner: UniquePtr<mfem_sys::LinearForm<'fes>>,
-// }
+pub struct OwnedLinearForm {
+    inner: UniquePtr<mfem_sys::LinearForm>,
+}
 
-// impl<'fes> LinearForm<'fes> {
-//     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-//         let inner = mfem_sys::LinearForm_ctor_fes(&fespace.inner);
-//         Self { inner }
-//     }
+impl OwnedLinearForm {
+    pub fn new(fespace: &FiniteElementSpace) -> Self {
+        let inner = UniquePtr::emplace(unsafe { mfem_sys::LinearForm::new1(fespace.inner) });
+        Self { inner }
+    }
+}
 
-//     pub fn add_domain_integrator<Lfi>(&mut self, lfi: Lfi)
-//     where
-//         Lfi: LinearFormIntegrator,
-//     {
-//         mfem_sys::LinearForm_AddDomainIntegrator(self.inner.pin_mut(), lfi.into_base());
-//     }
+pub struct LinearForm {
+    inner: *mut mfem_sys::LinearForm,
+}
 
-//     pub fn assemble(&mut self) {
-//         self.inner.pin_mut().Assemble();
-//     }
-// }
+impl ThinWrapper for LinearForm {
+    type Inner = mfem_sys::LinearForm;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl LinearForm {
+    pub fn add_domain_integrator(&mut self, lfi: OwnedLinearFormIntegrator) {
+        unsafe {
+            self.into_pin_mut()
+                .AddDomainIntegrator(lfi.inner.into_raw());
+        }
+    }
+
+    pub fn assemble(&mut self) {
+        self.into_pin_mut().Assemble();
+    }
+}
 
 // impl<'fes> VectorLike for LinearForm<'fes> {}
 
@@ -651,16 +691,17 @@ impl ThinWrapper for Coefficient {
 //     }
 // }
 
-// //////////////////////////
-// // LinearFormIntegrator //
-// //////////////////////////
+//////////////////////////
+// LinearFormIntegrator //
+//////////////////////////
 
-// pub trait LinearFormIntegrator:
-//     AsBase<mfem_sys::LinearFormIntegrator>
-//     + IntoBase<UniquePtr<mfem_sys::LinearFormIntegrator>>
-// {
-//     // TODO(mkovaxx)
-// }
+pub struct OwnedLinearFormIntegrator {
+    inner: UniquePtr<mfem_sys::LinearFormIntegrator>,
+}
+
+pub struct LinearFormIntegrator {
+    inner: *mut mfem_sys::LinearFormIntegrator,
+}
 
 // ////////////////////////
 // // DomainLFIntegrator //

@@ -85,7 +85,7 @@ fn main() -> anyhow::Result<()> {
 
     dbg!(fec.get_name());
 
-    let fespace = FiniteElementSpace::new(&mesh, fec, 1, OrderingType::byNODES);
+    let fespace = OwnedFiniteElementSpace::new(&mut mesh, fec, 1, OrderingType::byNODES);
     println!(
         "Number of finite element unknowns: {}",
         fespace.get_true_vsize(),
@@ -95,9 +95,9 @@ fn main() -> anyhow::Result<()> {
     //    In this example, the boundary conditions are defined by marking all
     //    the boundary attributes from the mesh as essential (Dirichlet) and
     //    converting them to a list of true dofs.
-    let mut ess_tdof_list = ArrayInt::new();
+    let mut ess_tdof_list = OwnedArrayInt::new();
     if let Some(max_bdr_attr) = mesh.get_bdr_attributes().iter().max() {
-        let mut ess_bdr = ArrayInt::with_len(*max_bdr_attr as usize);
+        let mut ess_bdr = OwnedArrayInt::with_len(*max_bdr_attr as usize);
         ess_bdr.set_all(1);
         fespace.get_essential_true_dofs(&ess_bdr, &mut ess_tdof_list, None);
     }
@@ -105,8 +105,8 @@ fn main() -> anyhow::Result<()> {
     // 7. Set up the linear form b(.) which corresponds to the right-hand side of
     //    the FEM linear system, which in this case is (1,phi_i) where phi_i are
     //    the basis functions in the finite element fespace.
-    let mut b = LinearForm::new(&fespace);
-    let one = ConstantCoefficient::new(1.0);
+    let mut b = OwnedLinearForm::new(&fespace);
+    let one = OwnedConstantCoefficient::new(1.0);
     let integrator = DomainLFIntegrator::new(&one, 2, 0);
     b.add_domain_integrator(integrator);
     b.assemble();
