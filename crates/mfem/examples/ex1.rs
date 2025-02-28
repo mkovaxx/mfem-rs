@@ -121,7 +121,7 @@ fn main() -> anyhow::Result<()> {
     //    corresponding to the Laplacian operator -Delta, by adding the Diffusion
     //    domain integrator.
     let mut a = OwnedBilinearForm::new(&fespace);
-    let bf_integrator = DiffusionIntegrator::new(&one);
+    let bf_integrator = OwnedDiffusionIntegrator::new(&mut one);
     a.add_domain_integrator(bf_integrator);
 
     // 10. Assemble the bilinear form and the corresponding linear system,

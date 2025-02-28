@@ -1,8 +1,10 @@
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::pin::Pin;
+use std::ptr::null;
 
 use autocxx::c_int;
+use autocxx::c_void;
 use autocxx::prelude::Emplace;
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
@@ -1013,36 +1015,64 @@ pub struct OwnedBilinearFormIntegrator {
     inner: UniquePtr<mfem_sys::BilinearFormIntegrator>,
 }
 
-// /////////////////////////
-// // DiffusionIntegrator //
-// /////////////////////////
+/////////////////////////
+// DiffusionIntegrator //
+/////////////////////////
 
-// pub struct DiffusionIntegrator<'coeff> {
-//     inner: UniquePtr<mfem_sys::DiffusionIntegrator<'coeff>>,
-// }
+#[repr(transparent)]
+pub struct OwnedDiffusionIntegrator {
+    inner: UniquePtr<mfem_sys::DiffusionIntegrator>,
+}
 
-// impl<'coeff> DiffusionIntegrator<'coeff> {
-//     pub fn new(coeff: &'coeff dyn Coefficient) -> Self {
-//         let inner = mfem_sys::DiffusionIntegrator_ctor(coeff.as_base());
-//         Self { inner }
-//     }
-// }
+impl OwnedDiffusionIntegrator {
+    pub fn new(coeff: &mut Coefficient) -> Self {
+        let integration_rule: *const mfem_sys::IntegrationRule = null();
+        let inner = UniquePtr::emplace(unsafe {
+            mfem_sys::DiffusionIntegrator::new1(coeff.into_pin_mut(), integration_rule)
+        });
+        Self { inner }
+    }
+}
 
-// impl<'coeff> BilinearFormIntegrator for DiffusionIntegrator<'coeff> {}
+impl Into<OwnedBilinearFormIntegrator> for OwnedDiffusionIntegrator {
+    fn into(self) -> OwnedBilinearFormIntegrator {
+        // FIXME?
+        unsafe { std::mem::transmute(self) }
+    }
+}
 
-// impl<'coeff> AsBase<mfem_sys::BilinearFormIntegrator> for DiffusionIntegrator<'coeff> {
-//     fn as_base(&self) -> &mfem_sys::BilinearFormIntegrator {
-//         mfem_sys::DiffusionIntegrator_as_BFI(&self.inner)
-//     }
-// }
+impl Deref for OwnedDiffusionIntegrator {
+    type Target = DiffusionIntegrator;
 
-// impl<'coeff> IntoBase<UniquePtr<mfem_sys::BilinearFormIntegrator>>
-//     for DiffusionIntegrator<'coeff>
-// {
-//     fn into_base(self) -> UniquePtr<mfem_sys::BilinearFormIntegrator> {
-//         mfem_sys::DiffusionIntegrator_into_BFI(self.inner)
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
+
+#[repr(transparent)]
+pub struct DiffusionIntegrator {
+    inner: *mut mfem_sys::DiffusionIntegrator,
+}
+
+impl ThinWrapper for DiffusionIntegrator {
+    type Inner = mfem_sys::DiffusionIntegrator;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
 
 //////////////
 // Operator //
@@ -1056,6 +1086,40 @@ pub struct OwnedOperator {
 #[repr(transparent)]
 pub struct Operator {
     inner: *mut mfem_sys::Operator,
+}
+
+impl ThinWrapper for Operator {
+    type Inner = mfem_sys::Operator;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl Operator {
+    pub fn width(&self) -> usize {
+        self.into_ref().Width() as usize
+    }
+
+    pub fn height(&self) -> usize {
+        self.into_ref().Height() as usize
+    }
+
+    pub fn get_type(&self) -> OperatorType {
+        self.into_ref().GetType()
+    }
 }
 
 ////////////////////
@@ -1073,6 +1137,13 @@ impl OwnedOperatorHandle {
     pub fn new() -> Self {
         let inner = UniquePtr::emplace(mfem_sys::OperatorHandle::new());
         Self { inner }
+    }
+}
+
+impl Into<OwnedOperator> for OwnedOperatorHandle {
+    fn into(self) -> OwnedOperator {
+        // FIXME?
+        unsafe { std::mem::transmute(self) }
     }
 }
 
@@ -1115,9 +1186,19 @@ impl ThinWrapper for OperatorHandle {
     }
 }
 
-impl OperatorHandle {
-    pub fn get_type(&self) -> OperatorType {
-        self.into_ref().Type()
+impl Deref for OperatorHandle {
+    type Target = Operator;
+
+    fn deref(&self) -> &Self::Target {
+        // FIXME: use helper function from mfem_sys
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl DerefMut for OperatorHandle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // FIXME: use helper function from mfem_sys
+        unsafe { std::mem::transmute(self) }
     }
 }
 
