@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
         Some(h1_fec) => h1_fec,
         None => {
             println!("Using isoparametric FEs");
-            let nodes = owned_nodes.as_ref().expect("Mesh has its own nodes");
+            let nodes = owned_nodes.expect("Mesh has its own nodes");
             let iso_fec = nodes.get_own_fec().expect("OwnFEC exists");
             iso_fec
         }
@@ -106,7 +106,7 @@ fn main() -> anyhow::Result<()> {
     //    the FEM linear system, which in this case is (1,phi_i) where phi_i are
     //    the basis functions in the finite element fespace.
     let mut b = OwnedLinearForm::new(&fespace);
-    let one = OwnedConstantCoefficient::new(1.0);
+    let mut one = OwnedConstantCoefficient::new(1.0);
     let integrator = OwnedDomainLFIntegrator::new(&mut one, 2, 0);
     b.add_domain_integrator(integrator);
     b.assemble();
@@ -147,9 +147,12 @@ fn main() -> anyhow::Result<()> {
 
     // 11. Solve the linear system A X = B.
     // Use a simple symmetric Gauss-Seidel preconditioner with PCG.
-    let a_sparse = SparseMatrixRef::try_from(&a_mat).expect("Operator is a SparseMatrix");
-    let mut m_mat = GsSmoother::new(&a_sparse, 0, 1);
-    solve_with_pcg(&a_mat, &mut m_mat, &b_vec, &mut x_vec, 1, 200, 1e-12, 0.0);
+    let operator: &Operator = &a_mat;
+    let a_sparse = SparseMatrix::try_from(operator).expect("Operator is a SparseMatrix");
+    let mut m_mat = OwnedGsSmoother::new(&a_sparse, 0, 1);
+    solve_with_pcg(
+        &a_mat, &mut m_mat, &b_vec, &mut x_vec, true, 200, 1e-12, 0.0,
+    );
 
     // 12. Recover the solution as a finite element grid function.
     a.recover_fem_solution(&x_vec, &b, &mut x);

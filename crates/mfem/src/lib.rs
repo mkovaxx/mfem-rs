@@ -4,7 +4,6 @@ use std::pin::Pin;
 use std::ptr::null;
 
 use autocxx::c_int;
-use autocxx::c_void;
 use autocxx::prelude::Emplace;
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
@@ -1202,108 +1201,232 @@ impl DerefMut for OperatorHandle {
     }
 }
 
-// //////////////////
-// // SparseMatrix //
-// //////////////////
+//////////////////
+// SparseMatrix //
+//////////////////
 
-// pub struct SparseMatrix {
-//     inner: UniquePtr<mfem_sys::SparseMatrix>,
-// }
+#[repr(transparent)]
+pub struct OwnedSparseMatrix {
+    inner: UniquePtr<mfem_sys::SparseMatrix>,
+}
 
-// impl<'a> TryFrom<OperatorHandle> for SparseMatrix {
-//     type Error = MfemError;
+impl Deref for OwnedSparseMatrix {
+    type Target = SparseMatrix;
 
-//     fn try_from(value: OperatorHandle) -> Result<Self, Self::Error> {
-//         todo!()
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
 
-// pub struct SparseMatrixRef<'a> {
-//     inner: &'a mfem_sys::SparseMatrix,
-// }
+impl DerefMut for OwnedSparseMatrix {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
 
-// impl<'a> TryFrom<&'a OperatorHandle> for SparseMatrixRef<'a> {
-//     // TODO(mkovaxx)
-//     type Error = MfemError;
+#[repr(transparent)]
+pub struct SparseMatrix {
+    inner: *mut mfem_sys::SparseMatrix,
+}
 
-//     fn try_from(value: &'a OperatorHandle) -> Result<Self, Self::Error> {
-//         let inner =
-//             mfem_sys::OperatorHandle_try_as_SparseMatrix(&value.inner).map_err(|_| {
-//                 MfemError::OperatorHandleTypeMismatch(
-//                     OperatorType::MFEM_SPARSEMAT,
-//                     value.get_type(),
-//                 )
-//             })?;
-//         Ok(Self { inner })
-//     }
-// }
+impl ThinWrapper for SparseMatrix {
+    type Inner = mfem_sys::SparseMatrix;
 
-// ////////////
-// // Solver //
-// ////////////
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
 
-// pub trait Solver: AsBaseMut<mfem_sys::Solver> {
-//     // TODO(mkovaxx)
-// }
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
 
-// ////////////////
-// // GSSmoother //
-// ////////////////
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
 
-// pub struct GsSmoother<'mat> {
-//     inner: UniquePtr<mfem_sys::GSSmoother<'mat>>,
-// }
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
 
-// impl<'mat> GsSmoother<'mat> {
-//     pub fn new(a: &SparseMatrixRef<'mat>, t: i32, it: i32) -> Self {
-//         let inner = mfem_sys::GSSmoother_ctor(a.inner, t, it);
-//         Self { inner }
-//     }
-// }
+impl TryFrom<&Operator> for SparseMatrix {
+    // TODO(mkovaxx)
+    type Error = MfemError;
 
-// impl<'mat> Solver for GsSmoother<'mat> {}
+    fn try_from(value: &Operator) -> Result<Self, Self::Error> {
+        if value.get_type() == OperatorType::MFEM_SPARSEMAT {
+            Ok(unsafe { std::mem::transmute(value) })
+        } else {
+            Err(MfemError::OperatorHandleTypeMismatch(
+                OperatorType::MFEM_SPARSEMAT,
+                value.get_type(),
+            ))
+        }
+    }
+}
 
-// impl<'mat> AsBaseMut<mfem_sys::Solver> for GsSmoother<'mat> {
-//     fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Solver> {
-//         mfem_sys::GSSmoother_as_mut_Solver(self.inner.pin_mut())
-//     }
-// }
+////////////
+// Solver //
+////////////
 
-// /////////
-// // PCG //
-// /////////
+#[repr(transparent)]
+pub struct OwnedSolver {
+    inner: UniquePtr<mfem_sys::Solver>,
+}
 
-// pub fn solve_with_pcg<Op, So>(
-//     a_mat: &Op,
-//     solver: &mut So,
-//     b_vec: &Vector,
-//     x_vec: &mut Vector,
-//     print_iter: i32,
-//     max_num_iter: i32,
-//     rtolerance: f64,
-//     atolerance: f64,
-// ) where
-//     Op: Operator,
-//     So: Solver,
-// {
-//     mfem_sys::PCG(
-//         a_mat.as_base(),
-//         solver.as_base_mut(),
-//         &b_vec.inner,
-//         x_vec.inner.pin_mut(),
-//         print_iter,
-//         max_num_iter,
-//         rtolerance,
-//         atolerance,
-//     );
-// }
+impl Deref for OwnedSolver {
+    type Target = Solver;
 
-// ///////////
-// // Error //
-// ///////////
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
 
-// #[derive(Error, Debug)]
-// pub enum MfemError {
-//     #[error("OperatorHandle type mismatch: expected {0:?} got {1:?}")]
-//     OperatorHandleTypeMismatch(OperatorType, OperatorType),
-// }
+impl DerefMut for OwnedSolver {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+#[repr(transparent)]
+pub struct Solver {
+    inner: *mut mfem_sys::Solver,
+}
+
+impl ThinWrapper for Solver {
+    type Inner = mfem_sys::Solver;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+////////////////
+// GsSmoother //
+////////////////
+
+#[repr(transparent)]
+pub struct OwnedGsSmoother {
+    inner: UniquePtr<mfem_sys::GSSmoother>,
+}
+
+impl OwnedGsSmoother {
+    pub fn new(a: &SparseMatrix, t: i32, it: i32) -> Self {
+        let inner = UniquePtr::emplace(mfem_sys::GSSmoother::new1(
+            a.into_ref(),
+            c_int(t),
+            c_int(it),
+        ));
+        Self { inner }
+    }
+}
+
+impl Into<OwnedSolver> for OwnedGsSmoother {
+    fn into(self) -> OwnedSolver {
+        // FIXME?
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl Deref for OwnedGsSmoother {
+    type Target = GsSmoother;
+
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedGsSmoother {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+#[repr(transparent)]
+pub struct GsSmoother {
+    inner: *mut mfem_sys::GSSmoother,
+}
+
+impl ThinWrapper for GsSmoother {
+    type Inner = mfem_sys::GSSmoother;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl Deref for GsSmoother {
+    type Target = Solver;
+
+    fn deref(&self) -> &Self::Target {
+        // FIXME?
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl DerefMut for GsSmoother {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // FIXME?
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+/////////
+// PCG //
+/////////
+
+pub fn solve_with_pcg(
+    a_mat: &Operator,
+    solver: &mut Solver,
+    b_vec: &Vector,
+    x_vec: &mut Vector,
+    print_iter: bool,
+    max_num_iter: i32,
+    rtolerance: f64,
+    atolerance: f64,
+) {
+    mfem_sys::PCG(
+        a_mat.into_ref(),
+        solver.into_pin_mut(),
+        b_vec.into_ref(),
+        x_vec.into_pin_mut(),
+        print_iter as i32,
+        max_num_iter,
+        rtolerance.into(),
+        atolerance.into(),
+    );
+}
+
+///////////
+// Error //
+///////////
+
+#[derive(Error, Debug)]
+pub enum MfemError {
+    #[error("OperatorHandle type mismatch: expected {0:?} got {1:?}")]
+    OperatorHandleTypeMismatch(OperatorType, OperatorType),
+}
