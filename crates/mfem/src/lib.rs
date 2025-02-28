@@ -430,12 +430,12 @@ pub struct OwnedFiniteElementSpace {
 
 impl OwnedFiniteElementSpace {
     pub fn new(
-        mesh: &mut Mesh,
+        mesh: &Mesh,
         fec: &FiniteElementCollection,
         vdim: i32,
         ordering: OrderingType,
     ) -> Self {
-        let inner = mfem_sys::FES_new(mesh.into_pin_mut(), fec.into_ref(), c_int(vdim), ordering);
+        let inner = mfem_sys::FES_new(mesh.into_ref(), fec.into_ref(), c_int(vdim), ordering);
         Self { inner }
     }
 }

@@ -61,13 +61,13 @@ namespace acxx {
     }
 
     std::unique_ptr<FiniteElementSpace> FES_new(
-        Mesh & mesh,
+        Mesh const& mesh,
         FiniteElementCollection const& fec,
         int vdim,
         Ordering::Type ordering)
     {
         return std::make_unique<FiniteElementSpace>(
-            &mesh, &fec, vdim, ordering);
+            const_cast<Mesh*>(&mesh), &fec, vdim, ordering);
     }
 }
 

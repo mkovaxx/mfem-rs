@@ -85,7 +85,7 @@ fn main() -> anyhow::Result<()> {
 
     dbg!(fec.get_name());
 
-    let fespace = OwnedFiniteElementSpace::new(&mut mesh, fec, 1, OrderingType::byNODES);
+    let fespace = OwnedFiniteElementSpace::new(&mesh, fec, 1, OrderingType::byNODES);
     println!(
         "Number of finite element unknowns: {}",
         fespace.get_true_vsize(),
