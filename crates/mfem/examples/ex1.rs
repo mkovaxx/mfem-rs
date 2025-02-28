@@ -120,7 +120,7 @@ fn main() -> anyhow::Result<()> {
     // 9. Set up the bilinear form a(.,.) on the finite element space
     //    corresponding to the Laplacian operator -Delta, by adding the Diffusion
     //    domain integrator.
-    let mut a = BilinearForm::new(&fespace);
+    let mut a = OwnedBilinearForm::new(&fespace);
     let bf_integrator = DiffusionIntegrator::new(&one);
     a.add_domain_integrator(bf_integrator);
 
@@ -130,10 +130,17 @@ fn main() -> anyhow::Result<()> {
     //     static condensation, etc.
     a.assemble(true);
 
-    let mut a_mat = OperatorHandle::new();
-    let mut b_vec = Vector::new();
-    let mut x_vec = Vector::new();
-    a.form_linear_system(&ess_tdof_list, &x, &b, &mut a_mat, &mut x_vec, &mut b_vec);
+    let mut a_mat = OwnedOperatorHandle::new();
+    let mut b_vec = OwnedVector::new();
+    let mut x_vec = OwnedVector::new();
+    a.form_linear_system(
+        &ess_tdof_list,
+        &mut x,
+        &mut b,
+        &mut a_mat,
+        &mut x_vec,
+        &mut b_vec,
+    );
 
     println!("Size of linear system: {}", a_mat.height());
     dbg!(a_mat.get_type());

@@ -653,7 +653,10 @@ impl ThinWrapper for LinearForm {
 }
 
 impl LinearForm {
-    pub fn add_domain_integrator<LFI: Into<OwnedLinearFormIntegrator>>(&mut self, lfi: LFI) {
+    pub fn add_domain_integrator<LFI>(&mut self, lfi: LFI)
+    where
+        LFI: Into<OwnedLinearFormIntegrator>,
+    {
         unsafe {
             self.into_pin_mut()
                 .AddDomainIntegrator(lfi.into().inner.into_raw());
@@ -900,77 +903,115 @@ impl ThinWrapper for DomainLFIntegrator {
     }
 }
 
-// //////////////////
-// // BilinearForm //
-// //////////////////
+//////////////////
+// BilinearForm //
+//////////////////
 
-// pub struct BilinearForm<'fes> {
-//     inner: UniquePtr<mfem_sys::BilinearForm<'fes>>,
-// }
+#[repr(transparent)]
+pub struct OwnedBilinearForm {
+    inner: UniquePtr<mfem_sys::BilinearForm>,
+}
 
-// impl<'fes> BilinearForm<'fes> {
-//     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-//         let inner = mfem_sys::BilinearForm_ctor_fes(&fespace.inner);
-//         Self { inner }
-//     }
+impl OwnedBilinearForm {
+    pub fn new(fespace: &FiniteElementSpace) -> Self {
+        let inner = UniquePtr::emplace(unsafe { mfem_sys::BilinearForm::new2(fespace.inner) });
+        Self { inner }
+    }
+}
 
-//     pub fn add_domain_integrator<Bfi>(&mut self, bfi: Bfi)
-//     where
-//         Bfi: BilinearFormIntegrator,
-//     {
-//         mfem_sys::BilinearForm_AddDomainIntegrator(self.inner.pin_mut(), bfi.into_base());
-//     }
+impl Deref for OwnedBilinearForm {
+    type Target = BilinearForm;
 
-//     pub fn assemble(&mut self, skip_zeros: bool) {
-//         self.inner
-//             .pin_mut()
-//             .Assemble(if skip_zeros { 1 } else { 0 })
-//     }
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
 
-//     pub fn form_linear_system<X, B>(
-//         &self,
-//         ess_tdof_list: &ArrayInt,
-//         x: &X,
-//         b: &B,
-//         a_mat: &mut OperatorHandle,
-//         x_vec: &mut Vector,
-//         b_vec: &mut Vector,
-//     ) where
-//         X: VectorLike,
-//         B: VectorLike,
-//     {
-//         mfem_sys::BilinearForm_FormLinearSystem(
-//             &self.inner,
-//             &ess_tdof_list.inner,
-//             &x.as_base(),
-//             &b.as_base(),
-//             a_mat.inner.pin_mut(),
-//             x_vec.inner.pin_mut(),
-//             b_vec.inner.pin_mut(),
-//         );
-//     }
+impl DerefMut for OwnedBilinearForm {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
 
-//     pub fn recover_fem_solution<B, X>(&mut self, x_vec: &Vector, b_vec: &B, x: &mut X)
-//     where
-//         B: VectorLike,
-//         X: VectorLike,
-//     {
-//         self.inner
-//             .pin_mut()
-//             .RecoverFEMSolution(&x_vec.inner, &b_vec.as_base(), x.as_base_mut());
-//     }
-// }
+#[repr(transparent)]
+pub struct BilinearForm {
+    inner: *mut mfem_sys::BilinearForm,
+}
 
-// ////////////////////////////
-// // BilinearFormIntegrator //
-// ////////////////////////////
+impl ThinWrapper for BilinearForm {
+    type Inner = mfem_sys::BilinearForm;
 
-// pub trait BilinearFormIntegrator:
-//     AsBase<mfem_sys::BilinearFormIntegrator>
-//     + IntoBase<UniquePtr<mfem_sys::BilinearFormIntegrator>>
-// {
-//     // TODO(mkovaxx)
-// }
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl BilinearForm {
+    pub fn add_domain_integrator<Bfi>(&mut self, bfi: Bfi)
+    where
+        Bfi: Into<OwnedBilinearFormIntegrator>,
+    {
+        unsafe {
+            self.into_pin_mut()
+                .AddDomainIntegrator(bfi.into().inner.into_raw());
+        }
+    }
+
+    pub fn assemble(&mut self, skip_zeros: bool) {
+        self.into_pin_mut().Assemble(c_int(skip_zeros as i32))
+    }
+
+    pub fn form_linear_system(
+        &mut self,
+        ess_tdof_list: &ArrayInt,
+        x: &mut Vector,
+        b: &mut Vector,
+        a_mat: &mut OperatorHandle,
+        x_vec: &mut Vector,
+        b_vec: &mut Vector,
+    ) {
+        let copy_interior = false;
+        mfem_sys::BilinearForm::FormLinearSystem(
+            self.into_pin_mut(),
+            ess_tdof_list.into_ref(),
+            x.into_pin_mut(),
+            b.into_pin_mut(),
+            a_mat.into_pin_mut(),
+            x_vec.into_pin_mut(),
+            b_vec.into_pin_mut(),
+            c_int(copy_interior as i32),
+        );
+    }
+
+    pub fn recover_fem_solution(&mut self, x_vec: &Vector, b_vec: &Vector, x: &mut Vector) {
+        self.into_pin_mut().RecoverFEMSolution(
+            x_vec.into_ref(),
+            b_vec.into_ref(),
+            x.into_pin_mut(),
+        );
+    }
+}
+
+////////////////////////////
+// BilinearFormIntegrator //
+////////////////////////////
+
+#[repr(transparent)]
+pub struct OwnedBilinearFormIntegrator {
+    inner: UniquePtr<mfem_sys::BilinearFormIntegrator>,
+}
 
 // /////////////////////////
 // // DiffusionIntegrator //
@@ -1003,44 +1044,82 @@ impl ThinWrapper for DomainLFIntegrator {
 //     }
 // }
 
-// //////////////
-// // Operator //
-// //////////////
+//////////////
+// Operator //
+//////////////
 
-// pub trait Operator: AsBase<mfem_sys::Operator> {
-//     fn height(&self) -> i32 {
-//         self.as_base().Height()
-//     }
-// }
+#[repr(transparent)]
+pub struct OwnedOperator {
+    inner: UniquePtr<mfem_sys::Operator>,
+}
 
-// ////////////////////
-// // OperatorHandle //
-// ////////////////////
+#[repr(transparent)]
+pub struct Operator {
+    inner: *mut mfem_sys::Operator,
+}
 
-// pub use mfem_sys::Operator_Type as OperatorType;
+////////////////////
+// OperatorHandle //
+////////////////////
 
-// pub struct OperatorHandle {
-//     inner: UniquePtr<mfem_sys::OperatorHandle>,
-// }
+pub use mfem_sys::Operator_Type as OperatorType;
 
-// impl OperatorHandle {
-//     pub fn new() -> Self {
-//         let inner = mfem_sys::OperatorHandle_ctor();
-//         Self { inner }
-//     }
+#[repr(transparent)]
+pub struct OwnedOperatorHandle {
+    inner: UniquePtr<mfem_sys::OperatorHandle>,
+}
 
-//     pub fn get_type(&self) -> OperatorType {
-//         self.inner.Type()
-//     }
-// }
+impl OwnedOperatorHandle {
+    pub fn new() -> Self {
+        let inner = UniquePtr::emplace(mfem_sys::OperatorHandle::new());
+        Self { inner }
+    }
+}
 
-// impl Operator for OperatorHandle {}
+impl Deref for OwnedOperatorHandle {
+    type Target = OperatorHandle;
 
-// impl AsBase<mfem_sys::Operator> for OperatorHandle {
-//     fn as_base(&self) -> &mfem_sys::Operator {
-//         mfem_sys::OperatorHandle_as_ref(&self.inner)
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedOperatorHandle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+#[repr(transparent)]
+pub struct OperatorHandle {
+    inner: *mut mfem_sys::OperatorHandle,
+}
+
+impl ThinWrapper for OperatorHandle {
+    type Inner = mfem_sys::OperatorHandle;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl OperatorHandle {
+    pub fn get_type(&self) -> OperatorType {
+        self.into_ref().Type()
+    }
+}
 
 // //////////////////
 // // SparseMatrix //
