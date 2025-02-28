@@ -162,7 +162,7 @@ impl ThinWrapper for Vector {
 }
 
 impl Vector {
-    fn set_all(&mut self, value: Real) {
+    pub fn set_all(&mut self, value: Real) {
         mfem_sys::Vector_set_all(self.into_pin_mut(), value.into());
     }
 }
@@ -172,7 +172,7 @@ impl Vector {
 //////////
 
 #[repr(transparent)]
-struct OwnedMesh {
+pub struct OwnedMesh {
     inner: UniquePtr<mfem_sys::Mesh>,
 }
 
@@ -330,7 +330,7 @@ impl ThinWrapper for FiniteElementCollection {
 }
 
 impl FiniteElementCollection {
-    fn get_name(&self) -> String {
+    pub fn get_name(&self) -> String {
         let ptr = self.into_ref().Name();
         assert!(!ptr.is_null());
         let name = unsafe { std::ffi::CStr::from_ptr(ptr) };

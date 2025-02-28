@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
     // 3. Read the mesh from the given mesh file. We can handle triangular,
     //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
     //    the same code.
-    let mut mesh = OwnedMesh::from_file(&args.mesh_file)?;
+    let mut mesh = OwnedMesh::from_file(&args.mesh_file);
     let dim = mesh.dimension();
     dbg!(dim);
     dbg!(mesh.get_num_elems());
@@ -59,14 +59,14 @@ fn main() -> anyhow::Result<()> {
     // 5. Define a finite element space on the mesh. Here we use continuous
     //    Lagrange finite elements of the specified order. If order < 1, we
     //    instead use an isoparametric/isogeometric space.
-    let owned_fec: Option<H1FeCollection> = if args.order > 0 {
-        Some(H1FeCollection::new(
+    let owned_fec: Option<OwnedH1FeCollection> = if args.order > 0 {
+        Some(OwnedH1FeCollection::new(
             args.order,
             dim,
             BasisType::GaussLobatto,
         ))
     } else if mesh.get_nodes().is_none() {
-        Some(H1FeCollection::new(1, dim, BasisType::GaussLobatto))
+        Some(OwnedH1FeCollection::new(1, dim, BasisType::GaussLobatto))
     } else {
         None
     };
