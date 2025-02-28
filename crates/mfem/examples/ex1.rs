@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
     // 3. Read the mesh from the given mesh file. We can handle triangular,
     //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
     //    the same code.
-    let mut mesh = Mesh::from_file(&args.mesh_file)?;
+    let mut mesh = OwnedMesh::from_file(&args.mesh_file)?;
     let dim = mesh.dimension();
     dbg!(dim);
     dbg!(mesh.get_num_elems());
@@ -73,7 +73,7 @@ fn main() -> anyhow::Result<()> {
 
     let owned_nodes = mesh.get_nodes();
 
-    let fec: &dyn FiniteElementCollection = match &owned_fec {
+    let fec: &FiniteElementCollection = match &owned_fec {
         Some(h1_fec) => h1_fec,
         None => {
             println!("Using isoparametric FEs");

@@ -19,6 +19,7 @@ include_cpp! {
     generate!("mfem::ErrorAction")
     generate!("mfem::set_error_action")
     generate!("mfem::Vector")
+    generate!("acxx::Vector_set_all")
 
     extern_cpp_opaque_type!("mfem::Operator", ffi_cxx::Operator)
     generate!("mfem::Operator_Type") // Operator::Type
@@ -319,6 +320,7 @@ impl Debug for Operator_Type {
     }
 }
 
+#[repr(i32)]
 pub enum BasisType {
     //Invalid = -1,  // Removed, use Option<BasisType>
     /// Open type.

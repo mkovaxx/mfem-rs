@@ -1,5 +1,6 @@
 use autocxx::c_int;
 use autocxx::prelude::Emplace;
+use mfem_sys::Real;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::pin::*;
@@ -11,7 +12,7 @@ trait ThinWrapper {
     type Inner;
 
     fn from_ref(r: &Self::Inner) -> &Self;
-    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self;
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self;
 
     fn into_ref(&self) -> &Self::Inner;
     fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner>;
@@ -28,15 +29,13 @@ struct OwnedArrayInt {
 
 impl OwnedArrayInt {
     pub fn new() -> Self {
-        Self {
-            inner: mfem_sys::arrayint_with_len(0),
-        }
+        let inner = mfem_sys::arrayint_with_len(0);
+        Self { inner }
     }
 
     pub fn with_len(len: usize) -> Self {
-        Self {
-            inner: mfem_sys::arrayint_with_len(len as i32),
-        }
+        let inner = mfem_sys::arrayint_with_len(len as i32);
+        Self { inner }
     }
 }
 
@@ -44,13 +43,13 @@ impl Deref for OwnedArrayInt {
     type Target = ArrayInt;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.inner.as_ptr().cast() }
+        ArrayInt::from_ref(&self.inner)
     }
 }
 
 impl DerefMut for OwnedArrayInt {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.inner.as_mut_ptr().cast() }
+        ArrayInt::from_pin_mut(self.inner.pin_mut())
     }
 }
 
@@ -74,7 +73,7 @@ impl ThinWrapper for ArrayInt {
         unsafe { std::mem::transmute(r) }
     }
 
-    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self {
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
         unsafe { std::mem::transmute(r) }
     }
 }
@@ -113,20 +112,60 @@ impl ArrayInt {
 // Vector //
 ////////////
 
-// pub struct Vector {
-//     inner: UniquePtr<mfem_sys::Vector>,
-// }
+pub struct OwnedVector {
+    inner: UniquePtr<mfem_sys::Vector>,
+}
 
-// impl Vector {
-//     pub fn new() -> Self {
-//         let inner = UniquePtr::emplace(Vector::new());
-//         Self { inner }
-//     }
-// }
+impl OwnedVector {
+    pub fn new() -> Self {
+        let inner = UniquePtr::emplace(mfem_sys::Vector::new());
+        Self { inner }
+    }
+}
 
-// pub struct VectorRef<'a> {
-//     inner: &'a mfem_sys::Vector,
-// }
+impl Deref for OwnedVector {
+    type Target = Vector;
+
+    fn deref(&self) -> &Self::Target {
+        Vector::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedVector {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Vector::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+pub struct Vector {
+    inner: *mut mfem_sys::Vector,
+}
+
+impl ThinWrapper for Vector {
+    type Inner = mfem_sys::Vector;
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl Vector {
+    fn set_all(&mut self, value: Real) {
+        mfem_sys::Vector_set_all(self.into_pin_mut(), value.into());
+    }
+}
 
 //////////
 // Mesh //
@@ -139,9 +178,8 @@ struct OwnedMesh {
 
 impl OwnedMesh {
     pub fn new() -> Self {
-        Self {
-            inner: UniquePtr::emplace(mfem_sys::MeshCxx::new1()),
-        }
+        let inner = UniquePtr::emplace(mfem_sys::MeshCxx::new1());
+        Self { inner }
     }
 
     pub fn from_file(path: &str) -> Self {
@@ -163,13 +201,13 @@ impl Deref for OwnedMesh {
     type Target = Mesh;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.inner.as_ptr().cast() }
+        Mesh::from_ref(&self.inner)
     }
 }
 
 impl DerefMut for OwnedMesh {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.inner.as_mut_ptr().cast() }
+        Mesh::from_pin_mut(self.inner.pin_mut())
     }
 }
 
@@ -193,7 +231,7 @@ impl ThinWrapper for Mesh {
         unsafe { std::mem::transmute(r) }
     }
 
-    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self {
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
         unsafe { std::mem::transmute(r) }
     }
 }
@@ -245,113 +283,211 @@ pub enum RefAlgo {
 
 pub use mfem_sys::BasisType;
 
-// /////////////////////////////
-// // FiniteElementCollection //
-// /////////////////////////////
+/////////////////////////////
+// FiniteElementCollection //
+/////////////////////////////
 
-// pub struct FiniteElementCollection {
-//     inner: UniquePtr<mfem_sys::FiniteElementCollection>,
-// }
+pub struct OwnedFiniteElementCollection {
+    inner: UniquePtr<mfem_sys::FiniteElementCollection>,
+}
 
-// pub struct FiniteElementCollectionRef<'a> {
-//     inner: &'a mfem_sys::FiniteElementCollection,
-// }
+impl Deref for OwnedFiniteElementCollection {
+    type Target = FiniteElementCollection;
 
-// impl Deref for FiniteElementCollection {
-//     type Target = FiniteElementCollectionRef<'a>;
-//     fn deref(&self) -> &Self::Target {
-//         todo!()
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        FiniteElementCollection::from_ref(&self.inner)
+    }
+}
 
-// impl DerefMut for FiniteElementCollection {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         todo!()
-//     }
-// }
+impl DerefMut for OwnedFiniteElementCollection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        FiniteElementCollection::from_pin_mut(self.inner.pin_mut())
+    }
+}
 
-// impl<'a> FiniteElementCollectionRef<'a> {
-//     fn get_name(&self) -> String {
-//         let ptr = self.Name();
-//         assert!(!ptr.is_null());
-//         let name = unsafe { std::ffi::CStr::from_ptr(ptr) };
-//         name.to_owned().into_string().expect("Valid string")
-//     }
-// }
+pub struct FiniteElementCollection {
+    inner: *mut mfem_sys::FiniteElementCollection,
+}
 
-// /////////////////////
-// // H1_FECollection //
-// /////////////////////
+impl ThinWrapper for FiniteElementCollection {
+    type Inner = mfem_sys::FiniteElementCollection;
 
-// pub struct H1FeCollection {
-//     inner: UniquePtr<mfem_sys::H1_FECollection>,
-// }
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
 
-// impl H1FeCollection {
-//     pub fn new(p: i32, dim: i32, btype: BasisType) -> Self {
-//         let inner = mfem_sys::H1_FECollection::new(p, dim, btype.repr);
-//         Self { inner }
-//     }
-// }
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
 
-// impl Deref for H1FeCollection {
-//     type Target = FiniteElementCollectionRef;
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
 
-//     fn deref(&self) -> &Self::Target {
-//         FiniteElementCollectionRef
-//     }
-// }
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
 
-// impl AsBase<mfem_sys::FiniteElementCollection> for H1FeCollection {
-//     fn as_base(&self) -> &mfem_sys::FiniteElementCollection {
-//         mfem_sys::H1_FECollection_as_FEC(&self.inner)
-//     }
-// }
+impl FiniteElementCollection {
+    fn get_name(&self) -> String {
+        let ptr = self.into_ref().Name();
+        assert!(!ptr.is_null());
+        let name = unsafe { std::ffi::CStr::from_ptr(ptr) };
+        name.to_owned().into_string().expect("Valid string")
+    }
+}
 
-// ////////////////////////
-// // FiniteElementSpace //
-// ////////////////////////
+/////////////////////
+// H1_FECollection //
+/////////////////////
 
-// pub use mfem_sys::Ordering_Type as OrderingType;
+pub struct OwnedH1FeCollection {
+    inner: UniquePtr<mfem_sys::H1_FECollection>,
+}
 
-// pub struct FiniteElementSpace<'mesh, 'fec> {
-//     inner: UniquePtr<mfem_sys::FiniteElementSpace>,
-// }
+impl OwnedH1FeCollection {
+    pub fn new(p: i32, dim: i32, btype: BasisType) -> Self {
+        let inner = UniquePtr::emplace(mfem_sys::H1_FECollection::new(
+            c_int(p),
+            c_int(dim),
+            c_int(btype as i32),
+        ));
+        Self { inner }
+    }
+}
 
-// impl<'mesh, 'fec> FiniteElementSpace<'mesh, 'fec> {
-//     pub fn new(
-//         mesh: &'mesh Mesh,
-//         fec: &'fec dyn FiniteElementCollection,
-//         vdim: i32,
-//         ordering: OrderingType,
-//     ) -> Self {
-//         let inner =
-//             mfem_sys::FiniteElementSpace_ctor(&mesh.inner, &fec.as_base(), vdim, ordering);
-//         Self { inner }
-//     }
+impl Deref for OwnedH1FeCollection {
+    type Target = H1FeCollection;
 
-//     pub fn get_true_vsize(&self) -> i32 {
-//         self.inner.GetTrueVSize()
-//     }
+    fn deref(&self) -> &Self::Target {
+        H1FeCollection::from_ref(&self.inner)
+    }
+}
 
-//     pub fn get_essential_true_dofs(
-//         &self,
-//         bdr_attr_is_ess: &ArrayInt,
-//         ess_tdof_list: &mut ArrayInt,
-//         component: Option<usize>,
-//     ) {
-//         mfem_sys::FiniteElementSpace_GetEssentialTrueDofs(
-//             &self.inner,
-//             &bdr_attr_is_ess.inner,
-//             ess_tdof_list.inner.pin_mut(),
-//             component.map(|c| c as i32).unwrap_or(-1),
-//         );
-//     }
-// }
+impl DerefMut for OwnedH1FeCollection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        H1FeCollection::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+pub struct H1FeCollection {
+    inner: *mut mfem_sys::H1_FECollection,
+}
+
+impl ThinWrapper for H1FeCollection {
+    type Inner = mfem_sys::H1_FECollection;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl Deref for H1FeCollection {
+    type Target = FiniteElementCollection;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl DerefMut for H1FeCollection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+////////////////////////
+// FiniteElementSpace //
+////////////////////////
+
+pub use mfem_sys::Ordering_Type as OrderingType;
+
+pub struct OwnedFiniteElementSpace {
+    inner: UniquePtr<mfem_sys::FiniteElementSpace>,
+}
+
+impl OwnedFiniteElementSpace {
+    pub fn new(
+        mesh: &mut Mesh,
+        fec: &FiniteElementCollection,
+        vdim: i32,
+        ordering: OrderingType,
+    ) -> Self {
+        let inner = mfem_sys::FES_new(mesh.into_pin_mut(), fec.into_ref(), c_int(vdim), ordering);
+        Self { inner }
+    }
+}
+
+pub struct FiniteElementSpace {
+    inner: *mut mfem_sys::FiniteElementSpace,
+}
+
+impl ThinWrapper for FiniteElementSpace {
+    type Inner = mfem_sys::FiniteElementSpace;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl FiniteElementSpace {
+    pub fn get_true_vsize(&self) -> i32 {
+        self.into_ref().GetTrueVSize()
+    }
+
+    pub fn get_essential_true_dofs(
+        &self,
+        bdr_attr_is_ess: &ArrayInt,
+        ess_tdof_list: &mut ArrayInt,
+        component: Option<usize>,
+    ) {
+        self.into_ref().GetEssentialTrueDofs(
+            bdr_attr_is_ess.into_ref(),
+            ess_tdof_list.into_pin_mut(),
+            component.map(|c| c as i32).unwrap_or(-1),
+        );
+    }
+}
 
 //////////////////
 // GridFunction //
 //////////////////
+
+pub struct OwnedGridFunction {
+    inner: UniquePtr<mfem_sys::GridFunction>,
+}
+
+impl OwnedGridFunction {
+    pub fn new(fespace: &FiniteElementSpace) -> Self {
+        let inner = UniquePtr::emplace(unsafe { mfem_sys::GridFunction::new2(fespace.inner) });
+        Self { inner }
+    }
+}
 
 pub struct GridFunction {
     inner: *mut mfem_sys::GridFunction,
@@ -372,58 +508,53 @@ impl ThinWrapper for GridFunction {
         unsafe { std::mem::transmute(r) }
     }
 
-    fn from_ref_mut(r: &mut Self::Inner) -> &mut Self {
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
         unsafe { std::mem::transmute(r) }
     }
 }
 
-// impl<'fes> GridFunction<'fes> {
-//     pub fn new(fespace: &'fes mut FiniteElementSpace) -> Self {
-//         let inner = unsafe { mfem_sys::GridFunction::new2(&fespace.inner.pin_mut()) };
-//         Self { inner }
-//     }
+impl GridFunction {
+    /// Project `coeff` [`Coefficient`] to this [`GridFunction`].
+    ///
+    /// The projection computation depends on the choice of the [`FiniteElementSpace`] `fespace`.
+    ///
+    /// Note that this is usually interpolation at the degrees of freedom in each element (not L2 projection).
+    pub fn project_coefficient(&mut self, coeff: &mut Coefficient) {
+        self.into_pin_mut()
+            .ProjectCoefficient5(coeff.into_pin_mut());
+    }
 
-//     /// Project `coeff` [`Coefficient`] to this [`GridFunction`].
-//     ///
-//     /// The projection computation depends on the choice of the [`FiniteElementSpace`] `fespace`.
-//     ///
-//     /// Note that this is usually interpolation at the degrees of freedom in each element (not L2 projection).
-//     pub fn project_coefficient<Coeff: Deref<Target = Coefficient>>(&mut self, coeff: Coeff) {
-//         self.inner.pin_mut().ProjectCoefficient5(coeff.inner);
-//     }
+    pub fn save_to_file(&self, path: &str, precision: i32) {
+        let_cxx_string!(fname = path);
+        unsafe {
+            self.into_ref()
+                .Save1(fname.as_ptr().cast(), c_int(precision));
+        }
+    }
 
-//     pub fn set_all(&mut self, value: f64) {
-//         let vector: &mut Vector = self.inner.pin_mut().as_mut();
-//         vector.set_all(value);
-//     }
+    pub fn get_own_fec(&self) -> Option<&FiniteElementCollection> {
+        let ptr = mfem_sys::GridFunction_OwnFEC(self.into_ref());
+        if !ptr.is_null() {
+            Some(FiniteElementCollection::from_ref(unsafe { &*ptr }))
+        } else {
+            None
+        }
+    }
+}
 
-//     pub fn save_to_file(&self, path: &str, precision: i32) {
-//         let_cxx_string!(fname = path);
-//         unsafe { self.inner.Save1(fname, precision); }
-//     }
-// }
+impl Deref for GridFunction {
+    type Target = Vector;
 
-// impl<'fes, 'a> GridFunctionRef<'fes, 'a> {
-//     pub fn get_own_fec(&self) -> Option<&FiniteElementCollection> {
-//         mfem_sys::GridFunction_OwnFEC(self.inner)
-//             .ok()
-//             .map(|fec| fec as &dyn FiniteElementCollection)
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        unsafe { std::mem::transmute(self) }
+    }
+}
 
-// impl<'fes, 'a> Deref for GridFunctionRef<'fes, 'a> {
-//     type Target = VectorRef<'a>;
-
-//     fn deref(&self) -> &Self::Target {
-//         VectorRef { inner: unsafe { mfem_sys::GridFunction_as_Vector(&self.inner) } }
-//     }
-// }
-
-// impl<'fes> AsBaseMut<mfem_sys::Vector> for GridFunction<'fes> {
-//     fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Vector> {
-//         mfem_sys::GridFunction_as_mut_Vector(self.inner.pin_mut())
-//     }
-// }
+impl DerefMut for GridFunction {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { std::mem::transmute(self) }
+    }
+}
 
 // ////////////////
 // // LinearForm //
@@ -465,13 +596,37 @@ impl ThinWrapper for GridFunction {
 //     }
 // }
 
-// /////////////////
-// // Coefficient //
-// /////////////////
+/////////////////
+// Coefficient //
+/////////////////
 
-// pub trait Coefficient: AsBase<mfem_sys::Coefficient> {
-//     // TODO(mkovaxx)
-// }
+pub struct OwnedCoefficient {
+    inner: UniquePtr<mfem_sys::Coefficient>,
+}
+
+pub struct Coefficient {
+    inner: *mut mfem_sys::Coefficient,
+}
+
+impl ThinWrapper for Coefficient {
+    type Inner = mfem_sys::Coefficient;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
 
 // /////////////////////////
 // // ConstantCoefficient //

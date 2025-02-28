@@ -44,6 +44,10 @@ namespace acxx {
     SUBCLASS(SparseSmoother, MatrixInverse)
     SUBCLASS(GSSmoother, SparseSmoother)
 
+    void Vector_set_all(Vector& vector, real_t value) {
+        vector = value;
+    }
+
     const int NumBasisTypes = mfem::BasisType::NumBasisTypes;
 
     Array<int> const& Mesh_bdr_attributes(Mesh const& mesh) {
