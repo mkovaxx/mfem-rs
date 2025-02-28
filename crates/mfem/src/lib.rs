@@ -1,10 +1,9 @@
-use autocxx::c_int;
-use autocxx::prelude::Emplace;
-use mfem_sys::Real;
 use std::ops::Deref;
 use std::ops::DerefMut;
-use std::pin::*;
+use std::pin::Pin;
 
+use autocxx::c_int;
+use autocxx::prelude::Emplace;
 use cxx::{let_cxx_string, UniquePtr};
 use thiserror::Error;
 
@@ -164,8 +163,8 @@ impl ThinWrapper for Vector {
 }
 
 impl Vector {
-    pub fn set_all(&mut self, value: Real) {
-        mfem_sys::Vector_set_all(self.into_pin_mut(), value.into());
+    pub fn set_all(&mut self, value: f64) {
+        mfem_sys::Vector_set_all(self.into_pin_mut(), value);
     }
 }
 
@@ -511,6 +510,20 @@ impl OwnedGridFunction {
     pub fn new(fespace: &FiniteElementSpace) -> Self {
         let inner = UniquePtr::emplace(unsafe { mfem_sys::GridFunction::new2(fespace.inner) });
         Self { inner }
+    }
+}
+
+impl Deref for OwnedGridFunction {
+    type Target = GridFunction;
+
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedGridFunction {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
     }
 }
 

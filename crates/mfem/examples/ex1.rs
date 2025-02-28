@@ -114,7 +114,7 @@ fn main() -> anyhow::Result<()> {
     // 8. Define the solution vector x as a finite element grid function
     //    corresponding to fespace. Initialize x with initial guess of zero,
     //    which satisfies the boundary conditions.
-    let mut x = GridFunction::new(&fespace);
+    let mut x = OwnedGridFunction::new(&fespace);
     x.set_all(0.0);
 
     // 9. Set up the bilinear form a(.,.) on the finite element space
