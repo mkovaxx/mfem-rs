@@ -107,7 +107,7 @@ fn main() -> anyhow::Result<()> {
     //    the basis functions in the finite element fespace.
     let mut b = OwnedLinearForm::new(&fespace);
     let one = OwnedConstantCoefficient::new(1.0);
-    let integrator = DomainLFIntegrator::new(&one, 2, 0);
+    let integrator = OwnedDomainLFIntegrator::new(&mut one, 2, 0);
     b.add_domain_integrator(integrator);
     b.assemble();
 

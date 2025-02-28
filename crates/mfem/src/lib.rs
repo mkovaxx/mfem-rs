@@ -112,6 +112,7 @@ impl ArrayInt {
 // Vector //
 ////////////
 
+#[repr(transparent)]
 pub struct OwnedVector {
     inner: UniquePtr<mfem_sys::Vector>,
 }
@@ -137,6 +138,7 @@ impl DerefMut for OwnedVector {
     }
 }
 
+#[repr(transparent)]
 pub struct Vector {
     inner: *mut mfem_sys::Vector,
 }
@@ -287,6 +289,7 @@ pub use mfem_sys::BasisType;
 // FiniteElementCollection //
 /////////////////////////////
 
+#[repr(transparent)]
 pub struct OwnedFiniteElementCollection {
     inner: UniquePtr<mfem_sys::FiniteElementCollection>,
 }
@@ -305,6 +308,7 @@ impl DerefMut for OwnedFiniteElementCollection {
     }
 }
 
+#[repr(transparent)]
 pub struct FiniteElementCollection {
     inner: *mut mfem_sys::FiniteElementCollection,
 }
@@ -342,6 +346,7 @@ impl FiniteElementCollection {
 // H1_FECollection //
 /////////////////////
 
+#[repr(transparent)]
 pub struct OwnedH1FeCollection {
     inner: UniquePtr<mfem_sys::H1_FECollection>,
 }
@@ -371,6 +376,7 @@ impl DerefMut for OwnedH1FeCollection {
     }
 }
 
+#[repr(transparent)]
 pub struct H1FeCollection {
     inner: *mut mfem_sys::H1_FECollection,
 }
@@ -399,12 +405,14 @@ impl Deref for H1FeCollection {
     type Target = FiniteElementCollection;
 
     fn deref(&self) -> &Self::Target {
+        // FIXME: use helper function from mfem_sys
         unsafe { std::mem::transmute(self) }
     }
 }
 
 impl DerefMut for H1FeCollection {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // FIXME: use helper function from mfem_sys
         unsafe { std::mem::transmute(self) }
     }
 }
@@ -415,6 +423,7 @@ impl DerefMut for H1FeCollection {
 
 pub use mfem_sys::Ordering_Type as OrderingType;
 
+#[repr(transparent)]
 pub struct OwnedFiniteElementSpace {
     inner: UniquePtr<mfem_sys::FiniteElementSpace>,
 }
@@ -445,6 +454,7 @@ impl DerefMut for OwnedFiniteElementSpace {
     }
 }
 
+#[repr(transparent)]
 pub struct FiniteElementSpace {
     inner: *mut mfem_sys::FiniteElementSpace,
 }
@@ -492,6 +502,7 @@ impl FiniteElementSpace {
 // GridFunction //
 //////////////////
 
+#[repr(transparent)]
 pub struct OwnedGridFunction {
     inner: UniquePtr<mfem_sys::GridFunction>,
 }
@@ -503,6 +514,7 @@ impl OwnedGridFunction {
     }
 }
 
+#[repr(transparent)]
 pub struct GridFunction {
     inner: *mut mfem_sys::GridFunction,
 }
@@ -560,12 +572,14 @@ impl Deref for GridFunction {
     type Target = Vector;
 
     fn deref(&self) -> &Self::Target {
+        // FIXME: use helper function from mfem_sys
         unsafe { std::mem::transmute(self) }
     }
 }
 
 impl DerefMut for GridFunction {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // FIXME: use helper function from mfem_sys
         unsafe { std::mem::transmute(self) }
     }
 }
@@ -574,6 +588,7 @@ impl DerefMut for GridFunction {
 // LinearForm //
 ////////////////
 
+#[repr(transparent)]
 pub struct OwnedLinearForm {
     inner: UniquePtr<mfem_sys::LinearForm>,
 }
@@ -585,6 +600,21 @@ impl OwnedLinearForm {
     }
 }
 
+impl Deref for OwnedLinearForm {
+    type Target = LinearForm;
+
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedLinearForm {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+#[repr(transparent)]
 pub struct LinearForm {
     inner: *mut mfem_sys::LinearForm,
 }
@@ -610,10 +640,10 @@ impl ThinWrapper for LinearForm {
 }
 
 impl LinearForm {
-    pub fn add_domain_integrator(&mut self, lfi: OwnedLinearFormIntegrator) {
+    pub fn add_domain_integrator<LFI: Into<OwnedLinearFormIntegrator>>(&mut self, lfi: LFI) {
         unsafe {
             self.into_pin_mut()
-                .AddDomainIntegrator(lfi.inner.into_raw());
+                .AddDomainIntegrator(lfi.into().inner.into_raw());
         }
     }
 
@@ -622,28 +652,32 @@ impl LinearForm {
     }
 }
 
-// impl<'fes> VectorLike for LinearForm<'fes> {}
+impl Deref for LinearForm {
+    type Target = Vector;
 
-// impl<'fes> AsBase<mfem_sys::Vector> for LinearForm<'fes> {
-//     fn as_base(&self) -> &mfem_sys::Vector {
-//         mfem_sys::LinearForm_as_Vector(&self.inner)
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        // FIXME: use helper function from mfem_sys
+        unsafe { std::mem::transmute(self) }
+    }
+}
 
-// impl<'fes> AsBaseMut<mfem_sys::Vector> for LinearForm<'fes> {
-//     fn as_base_mut(&mut self) -> std::pin::Pin<&mut mfem_sys::Vector> {
-//         mfem_sys::LinearForm_as_mut_Vector(self.inner.pin_mut())
-//     }
-// }
+impl DerefMut for LinearForm {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // FIXME: use helper function from mfem_sys
+        unsafe { std::mem::transmute(self) }
+    }
+}
 
 /////////////////
 // Coefficient //
 /////////////////
 
+#[repr(transparent)]
 pub struct OwnedCoefficient {
     inner: UniquePtr<mfem_sys::Coefficient>,
 }
 
+#[repr(transparent)]
 pub struct Coefficient {
     inner: *mut mfem_sys::Coefficient,
 }
@@ -668,71 +702,190 @@ impl ThinWrapper for Coefficient {
     }
 }
 
-// /////////////////////////
-// // ConstantCoefficient //
-// /////////////////////////
+/////////////////////////
+// ConstantCoefficient //
+/////////////////////////
 
-// pub struct ConstantCoefficient {
-//     inner: UniquePtr<mfem_sys::ConstantCoefficient>,
-// }
+#[repr(transparent)]
+pub struct OwnedConstantCoefficient {
+    inner: UniquePtr<mfem_sys::ConstantCoefficient>,
+}
 
-// impl ConstantCoefficient {
-//     pub fn new(value: f64) -> Self {
-//         let inner = mfem_sys::ConstantCoefficient_ctor(value);
-//         Self { inner }
-//     }
-// }
+impl OwnedConstantCoefficient {
+    pub fn new(value: f64) -> Self {
+        let inner = UniquePtr::emplace(mfem_sys::ConstantCoefficient::new(value));
+        Self { inner }
+    }
+}
 
-// impl Coefficient for ConstantCoefficient {}
+impl Deref for OwnedConstantCoefficient {
+    type Target = ConstantCoefficient;
 
-// impl AsBase<mfem_sys::Coefficient> for ConstantCoefficient {
-//     fn as_base(&self) -> &mfem_sys::Coefficient {
-//         mfem_sys::ConstantCoefficient_as_Coeff(&self.inner)
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        ConstantCoefficient::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedConstantCoefficient {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        ConstantCoefficient::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+#[repr(transparent)]
+pub struct ConstantCoefficient {
+    inner: *mut mfem_sys::ConstantCoefficient,
+}
+
+impl ThinWrapper for ConstantCoefficient {
+    type Inner = mfem_sys::ConstantCoefficient;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
+
+impl Deref for ConstantCoefficient {
+    type Target = Coefficient;
+
+    fn deref(&self) -> &Self::Target {
+        // FIXME: use helper function from mfem_sys
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl DerefMut for ConstantCoefficient {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // FIXME: use helper function from mfem_sys
+        unsafe { std::mem::transmute(self) }
+    }
+}
 
 //////////////////////////
 // LinearFormIntegrator //
 //////////////////////////
 
+#[repr(transparent)]
 pub struct OwnedLinearFormIntegrator {
     inner: UniquePtr<mfem_sys::LinearFormIntegrator>,
 }
 
+impl Deref for OwnedLinearFormIntegrator {
+    type Target = LinearFormIntegrator;
+
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedLinearFormIntegrator {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+#[repr(transparent)]
 pub struct LinearFormIntegrator {
     inner: *mut mfem_sys::LinearFormIntegrator,
 }
 
-// ////////////////////////
-// // DomainLFIntegrator //
-// ////////////////////////
+impl ThinWrapper for LinearFormIntegrator {
+    type Inner = mfem_sys::LinearFormIntegrator;
 
-// pub struct DomainLFIntegrator<'coeff> {
-//     inner: UniquePtr<mfem_sys::DomainLFIntegrator<'coeff>>,
-// }
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
 
-// impl<'coeff> DomainLFIntegrator<'coeff> {
-//     pub fn new(coeff: &'coeff dyn Coefficient, a: i32, b: i32) -> Self {
-//         let inner = mfem_sys::DomainLFIntegrator_ctor_ab(coeff.as_base(), a, b);
-//         Self { inner }
-//     }
-// }
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
 
-// impl<'coeff> LinearFormIntegrator for DomainLFIntegrator<'coeff> {}
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
 
-// impl<'coeff> AsBase<mfem_sys::LinearFormIntegrator> for DomainLFIntegrator<'coeff> {
-//     fn as_base(&self) -> &mfem_sys::LinearFormIntegrator {
-//         mfem_sys::DomainLFIntegrator_as_LFI(&self.inner)
-//     }
-// }
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
 
-// impl<'coeff> IntoBase<UniquePtr<mfem_sys::LinearFormIntegrator>>
-//     for DomainLFIntegrator<'coeff>
-// {
-//     fn into_base(self) -> UniquePtr<mfem_sys::LinearFormIntegrator> {
-//         mfem_sys::DomainLFIntegrator_into_LFI(self.inner)
-//     }
-// }
+////////////////////////
+// DomainLFIntegrator //
+////////////////////////
+
+#[repr(transparent)]
+pub struct OwnedDomainLFIntegrator {
+    inner: UniquePtr<mfem_sys::DomainLFIntegrator>,
+}
+
+impl Into<OwnedLinearFormIntegrator> for OwnedDomainLFIntegrator {
+    fn into(self) -> OwnedLinearFormIntegrator {
+        // FIXME?
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl OwnedDomainLFIntegrator {
+    pub fn new(coeff: &mut Coefficient, a: i32, b: i32) -> Self {
+        let inner = UniquePtr::emplace(mfem_sys::DomainLFIntegrator::new(
+            coeff.into_pin_mut(),
+            c_int(a),
+            c_int(b),
+        ));
+        Self { inner }
+    }
+}
+
+impl Deref for OwnedDomainLFIntegrator {
+    type Target = DomainLFIntegrator;
+
+    fn deref(&self) -> &Self::Target {
+        Self::Target::from_ref(&self.inner)
+    }
+}
+
+impl DerefMut for OwnedDomainLFIntegrator {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Self::Target::from_pin_mut(self.inner.pin_mut())
+    }
+}
+
+#[repr(transparent)]
+pub struct DomainLFIntegrator {
+    inner: *mut mfem_sys::DomainLFIntegrator,
+}
+
+impl ThinWrapper for DomainLFIntegrator {
+    type Inner = mfem_sys::DomainLFIntegrator;
+
+    fn into_ref(&self) -> &Self::Inner {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_pin_mut(&mut self) -> Pin<&mut Self::Inner> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn from_ref(r: &Self::Inner) -> &Self {
+        unsafe { std::mem::transmute(r) }
+    }
+
+    fn from_pin_mut(r: Pin<&mut Self::Inner>) -> &mut Self {
+        unsafe { std::mem::transmute(r) }
+    }
+}
 
 // //////////////////
 // // BilinearForm //
