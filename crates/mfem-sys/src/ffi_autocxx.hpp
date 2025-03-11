@@ -35,14 +35,19 @@ namespace acxx {
     SUBCLASS(FunctionCoefficient, Coefficient)
     SUBCLASS(GridFunctionCoefficient, Coefficient)
     SUBCLASS(DomainLFIntegrator, DeltaLFIntegrator)
+    SUBCLASS(DomainLFIntegrator, LinearFormIntegrator)
     SUBCLASS(DeltaLFIntegrator, LinearFormIntegrator)
     SUBCLASS(BilinearFormIntegrator, NonlinearFormIntegrator)
+    SUBCLASS(BilinearForm, Matrix)
     SUBCLASS(DiffusionIntegrator, BilinearFormIntegrator)
     SUBCLASS(ConvectionIntegrator, BilinearFormIntegrator)
     SUBCLASS(Solver, Operator)
+    SUBCLASS(SparseMatrix, AbstractSparseMatrix)
+    SUBCLASS(BlockMatrix, AbstractSparseMatrix)
     SUBCLASS(MatrixInverse, Solver)
     SUBCLASS(SparseSmoother, MatrixInverse)
     SUBCLASS(GSSmoother, SparseSmoother)
+    SUBCLASS(H1_FECollection, FiniteElementCollection)
 
     const int NumBasisTypes = mfem::BasisType::NumBasisTypes;
 

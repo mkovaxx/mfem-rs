@@ -7,6 +7,11 @@
 using namespace mfem;
 
 template<typename T>
+Operator const* upcast_as_operator(T const* x) {
+    return x;
+}
+
+template<typename T>
 Operator const& upcast_to_operator(T const& x) {
     return x;
 }
@@ -24,7 +29,7 @@ Operator& OperatorHandle_oper_mut(OperatorHandle& x) {
     return *x;
 }
 
-SparseMatrix const& OperatorHandle_ref_SparseMatrix(OperatorHandle const& x) {
+SparseMatrix const& OperatorHandle_as_SparseMatrix(OperatorHandle const& x) {
     return *x.As<SparseMatrix>();
 }
 
