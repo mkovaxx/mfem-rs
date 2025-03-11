@@ -49,8 +49,9 @@ fn main() -> anyhow::Result<()> {
     //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
     //    largest number that gives a final mesh with no more than 50,000
     //    elements.
-    let ref_levels =
-        f64::floor(f64::log2(50000.0 / mesh.get_num_elems() as f64) / dim as f64) as u32;
+    let ref_levels = ((50000. / mesh.get_num_elems() as f64).log2()
+        / dim as f64)
+        .floor() as u32;
     for _ in 0..ref_levels {
         mesh.uniform_refinement(RefAlgo::A);
     }
@@ -133,14 +134,22 @@ fn main() -> anyhow::Result<()> {
     let mut a_mat = OperatorHandle::new();
     let mut b_vec = Vector::new();
     let mut x_vec = Vector::new();
-    a.form_linear_system(&ess_tdof_list, &x, &b, &mut a_mat, &mut x_vec, &mut b_vec);
+    a.form_linear_system(
+        &ess_tdof_list,
+        &x,
+        &b,
+        &mut a_mat,
+        &mut x_vec,
+        &mut b_vec,
+    );
 
     println!("Size of linear system: {}", a_mat.height());
     dbg!(a_mat.get_type());
 
     // 11. Solve the linear system A X = B.
     // Use a simple symmetric Gauss-Seidel preconditioner with PCG.
-    let a_sparse = SparseMatrixRef::try_from(&a_mat).expect("Operator is a SparseMatrix");
+    let a_sparse =
+        SparseMatrixRef::try_from(&a_mat).expect("Operator is a SparseMatrix");
     let mut m_mat = GsSmoother::new(&a_sparse, 0, 1);
     solve_with_pcg(&a_mat, &mut m_mat, &b_vec, &mut x_vec, 1, 200, 1e-12, 0.0);
 
