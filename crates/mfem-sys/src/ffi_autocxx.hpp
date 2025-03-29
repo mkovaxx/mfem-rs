@@ -12,7 +12,7 @@ using namespace mfem;
 // Easily extract what we have defined (autocxx will put the functions
 // in a module with the same name).
 namespace acxx {
-    const bool MFEM_USE_EXCEPTIONS =
+    const bool mfem_use_exceptions =
 #ifdef MFEM_USE_EXCEPTIONS
         true;
 #else

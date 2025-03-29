@@ -14,7 +14,7 @@ include_cpp! {
     #include "ffi_autocxx.hpp"
     safety!(unsafe)
     generate_pod!("mfem::real_t")
-    generate!("acxx::MFEM_USE_EXCEPTIONS")
+    generate!("acxx::mfem_use_exceptions")
     generate!("acxx::NumBasisTypes")
     generate!("mfem::ErrorAction")
     generate!("mfem::set_error_action")
