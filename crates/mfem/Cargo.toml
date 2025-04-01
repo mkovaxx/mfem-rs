@@ -10,6 +10,7 @@ repository = "https://github.com/mkovaxx/mfem-rs"
 
 [dependencies]
 cxx = "1.0.137"
+autocxx = "0.28"
 mfem-sys = { version = "0.2.0", path = "../mfem-sys" }
 thiserror = "1.0.59"
 
