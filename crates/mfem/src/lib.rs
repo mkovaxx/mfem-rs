@@ -260,11 +260,11 @@ impl<'a, T: OwnedTarget> From<Ref<'a, T>> for A<'a, T> {
 // Subclass relationships.  These cannot be declared as blanket
 // implementations because the type must be local.
 macro_rules! subclass {
-    ($name: ident <$($l: lifetime)?>, $parent: ident) => {
-        subclass!($name <$($l)?> ($name), $parent ($parent));
+    ($name: ident $(<$l: lifetime>)?, $parent: ident) => {
+        subclass!($name $(<$l>)? ($name), $parent ($parent));
     };
 
-    ($name: ident <$($l: lifetime)?> ($sys_name:ident),
+    ($name: ident $(<$l: lifetime>)? ($sys_name:ident),
         $parent: ident ($sys_parent: ident)
     ) => {
         impl $(<$l>)? std::ops::Deref for $name $(<$l>)? {
@@ -283,16 +283,16 @@ macro_rules! subclass {
             }
         }
 
-        subclass_from!($name <$($l)?> ($sys_name), $parent ($sys_parent));
+        subclass_from!($name $(<$l>)? ($sys_name), $parent ($sys_parent));
     };
 }
 
 macro_rules! subclass_from {
-    ($name: ident <$($l: lifetime)?>, $parent: ident) => {
-        subclass_from!($name <$($l)?> ($name), $parent ($parent));
+    ($name: ident $(<$l: lifetime>)?, $parent: ident) => {
+        subclass_from!($name $(<$l>)? ($name), $parent ($parent));
     };
 
-    ($name: ident <$($l: lifetime)?> ($sys_name:ident),
+    ($name: ident $(<$l: lifetime>)? ($sys_name:ident),
         $parent: ident ($sys_parent: ident)
     ) => {
         impl $(<$l>)? From<Owned<$name $(<$l>)?>> for Owned<$parent $(<$l>)?> {
@@ -754,7 +754,7 @@ wrap_mfem_sys! {
     H1_FECollection<>
 }
 
-subclass!(H1_FECollection<>, FiniteElementCollection);
+subclass!(H1_FECollection, FiniteElementCollection);
 
 impl From<Owned<H1_FECollection>> for A<'_, FiniteElementCollection> {
     fn from(value: Owned<H1_FECollection>) -> Self {
@@ -1244,7 +1244,7 @@ wrap_mfem_sys! {
     ConstantCoefficient<>
 }
 
-subclass!(ConstantCoefficient<>, Coefficient);
+subclass!(ConstantCoefficient, Coefficient);
 
 impl ConstantCoefficient {
     pub fn new(c: f64) -> Owned<Self> {
@@ -1485,13 +1485,13 @@ wrap_mfem_sys! {
     SparseMatrix<>
 }
 
-subclass!(SparseMatrix<>, AbstractSparseMatrix);
+subclass!(SparseMatrix, AbstractSparseMatrix);
 
 wrap_mfem_sys! {
     BlockMatrix<>
 }
 
-subclass!(BlockMatrix<>, AbstractSparseMatrix);
+subclass!(BlockMatrix, AbstractSparseMatrix);
 
 impl<'a, 'deps: 'a> TryFrom<&'a OperatorHandle<'deps>>
     for Ref<'a, SparseMatrix>
