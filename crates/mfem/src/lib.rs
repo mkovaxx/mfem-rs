@@ -2,14 +2,11 @@ use autocxx::moveit::MakeCppStorage;
 use autocxx::prelude::*;
 use cxx::{let_cxx_string, memory::UniquePtrTarget};
 use paste::paste;
-use std::{fmt, marker::PhantomData, path::Path, pin::Pin, ptr, slice};
+use std::{
+    borrow::Cow, fmt, marker::PhantomData, path::Path, pin::Pin, ptr, slice,
+};
 
-/// *Pointers* to C++ objects are wrapped by this macro, much like
-/// `autocxx::CppMutRef` but without the lifetime to allow `Deref`.
-/// *Only* references to such values can be created (the lifetime
-/// parameter of `CppMutRef` becomes the lifetime of these references).
-/// Holding pointers is less dangerous than wrapping the `mfem_sys`
-/// values because C++ objects may be modified through other pointers.
+/// *Pointers* to C++ objects are wrapped by this macro.
 macro_rules! wrap_mfem_sys {
     ($(#[$doc: meta])* $name: ident <$($l: lifetime)?>) => {
         wrap_mfem_sys!($(#[$doc])* $name <$($l)?> ($name));
@@ -21,68 +18,38 @@ macro_rules! wrap_mfem_sys {
         $(#[$doc])*
         #[repr(transparent)]
         #[allow(non_camel_case_types)]
-        // Alike a autocxx::CppMutRef.  This will act as a "base type"
-        // for `Owned` values and `Ref`/`Mut` references and will hold
-        // all the methods.
+        // An owned value, wrapping the same C++ value.  We wrap the
+        // pointer itself (not the C++ value) in order to avoid the
+        // problems with Rust references to C++ values which may not
+        // hold all the required Rust invariants for references (see
+        // autocxx::CppRef for more information).
         pub struct $name $(<$l>)?{
             ptr: *mut mfem_sys::$sys_name,
             marker: PhantomData<$(&$l)? ()>,
         }
 
+        impl $(<$l>)? Drop for $name $(<$l>)?
+        where mfem_sys::$sys_name: UniquePtrTarget {
+            fn  drop(&mut self) {
+                drop(unsafe { UniquePtr::from_raw(self.ptr) });
+            }
+        }
+
         unsafe impl $(<$l>)? RefTarget for $name $(<$l>)? {
             type Target = mfem_sys::$sys_name;
 
+            #[inline]
             fn __wrap_ptr(ptr: *mut Self::Target) -> Self {
                 debug_assert!(!ptr.is_null());
                 Self { ptr, marker: PhantomData }
             }
-        }
 
-        unsafe impl $(<$l>)? OwnedTarget for $name $(<$l>)?
-        where mfem_sys::$sys_name: UniquePtrTarget {
-            fn __mut_ptr(x: &mut Self) -> *mut Self::Target {
+            #[inline]
+            fn __unwrap_ptr(x: &Self) -> *mut Self::Target {
                 x.ptr
             }
         }
-
-        #[allow(dead_code)]
-        impl $(<$l>)? $name $(<$l>)? {
-            /// Get a regular Rust reference out of this C++ reference.
-            ///
-            /// # Safety
-            ///
-            /// Callers must guarantee that the referent is not
-            /// modified by any other C++ or Rust code while the
-            /// returned reference exists. Callers must also guarantee
-            /// that no mutable Rust reference is created to the
-            /// referent while the returned reference exists.
-            ///
-            /// Callers must also be sure that the C++ reference is
-            /// properly aligned, not null, pointing to valid data, etc.
-            fn as_mfem(&self) -> &mfem_sys::$sys_name {
-                unsafe { &*self.ptr }
-            }
-
-            /// Get a regular Rust mutable reference out of this C++ reference.
-            ///
-            /// # Safety
-            ///
-            /// Callers must guarantee that the referent is not
-            /// modified by any other C++ or Rust code while the
-            /// returned reference exists.  Callers must also
-            /// guarantee that no other Rust reference is created to
-            /// the referent while the returned reference exists.
-            fn as_mfem_mut(&mut self) -> Pin<&mut mfem_sys::$sys_name> {
-                unsafe { Pin::new_unchecked(&mut *self.ptr) }
-            }
-
-            /// Temporary workaround until it becomes clear how to
-            /// handle shared mutability of some MFEM objects.
-            unsafe fn as_mfem_internal_ptr(&self) -> *mut mfem_sys::$sys_name {
-                self.ptr as *mut _
-            }
-        }
-    };
+     };
 }
 
 /// Trait bound for types `T` for which [`Ref`] or [`Mut`] can be
@@ -95,31 +62,106 @@ pub unsafe trait RefTarget {
     /// Wrap the pointer to a C++ value.
     #[doc(hidden)]
     fn __wrap_ptr(ptr: *mut Self::Target) -> Self;
+
+    /// Return the pointer to the C++ value.
+    #[doc(hidden)]
+    fn __unwrap_ptr(x: &Self) -> *mut Self::Target;
 }
 
-/// Trait bound for types `T` which may be used for [`Owned`]`<T>`.
-pub unsafe trait OwnedTarget: RefTarget {
-    #[doc(hidden)]
-    fn __mut_ptr(x: &mut Self) -> *mut Self::Target;
+/// Private trait for creation and de-reference for all created wrappers.
+trait Owned: RefTarget {
+    /// Create an owned value from the pointer `ptr`.
+    fn from_uniqueptr(ptr: UniquePtr<Self::Target>) -> Self;
+
+    fn emplace<N>(n: N) -> Self
+    where
+        N: New<Output = Self::Target>,
+        Self::Target: MakeCppStorage;
+
+    /// Takes ownership of the value and convert it to a pointer.
+    /// Suitable when the C++ function takes ownership of the pointer.
+    fn into_raw(self) -> *mut Self::Target;
+
+    /// Get a regular Rust reference out of this C++ reference.
+    ///
+    /// # Safety
+    ///
+    /// Callers must guarantee that the referent is not modified by
+    /// any other C++ or Rust code while the returned reference
+    /// exists. Callers must also guarantee that no mutable Rust
+    /// reference is created to the referent while the returned
+    /// reference exists.
+    ///
+    /// Callers must also be sure that the C++ reference is properly
+    /// aligned, not null, pointing to valid data, etc.
+    fn as_mfem(&self) -> &Self::Target;
+
+    /// Get a regular Rust mutable reference out of this C++ reference.
+    ///
+    /// # Safety
+    ///
+    /// Callers must guarantee that the referent is not modified by
+    /// any other C++ or Rust code while the returned reference
+    /// exists.  Callers must also guarantee that no other Rust
+    /// reference is created to the referent while the returned
+    /// reference exists.
+    fn as_mfem_mut(&mut self) -> Pin<&mut Self::Target>;
+
+    /// Temporary workaround until it becomes clear how to
+    /// handle shared mutability of some MFEM objects.
+    unsafe fn as_mfem_internal_ptr(&self) -> *mut Self::Target;
+}
+
+impl<T: RefTarget> Owned for T {
+    #[inline]
+    fn from_uniqueptr(ptr: UniquePtr<T::Target>) -> T {
+        T::__wrap_ptr(ptr.into_raw())
+    }
+
+    fn emplace<N>(n: N) -> T
+    where
+        N: New<Output = T::Target>,
+        T::Target: MakeCppStorage,
+    {
+        Self::from_uniqueptr(UniquePtr::emplace(n))
+    }
+
+    fn into_raw(self) -> *mut T::Target {
+        let ptr = T::__unwrap_ptr(&self);
+        std::mem::forget(self);
+        ptr
+    }
+
+    #[inline]
+    fn as_mfem(&self) -> &T::Target {
+        unsafe { &*T::__unwrap_ptr(self) }
+    }
+
+    #[inline]
+    fn as_mfem_mut(&mut self) -> Pin<&mut T::Target> {
+        unsafe { Pin::new_unchecked(&mut *T::__unwrap_ptr(self)) }
+    }
+
+    #[inline]
+    unsafe fn as_mfem_internal_ptr(&self) -> *mut T::Target {
+        T::__unwrap_ptr(self) as *mut _
+    }
 }
 
 /// Immutable reference to `T`.
-pub struct Ref<'a, T> {
-    ptr: T,
+pub struct Ref<'a, T: RefTarget> {
+    // Some functions return a *const mfem_sys::T that we cannot
+    // reinterpret as a reference to T (see `wrap_mfem_sys`) because
+    // that would reference a value local to the function.  So we wrap
+    // the pointer in `Self` that deref to &T.  `Self` does *not* own
+    // the value pointed by the pointer in `T`, so dropping this
+    // reference must *not* call `drop` on `ptr`.
+    ptr: *const T::Target,
     marker: PhantomData<&'a T>,
-}
-
-impl<'a, T> std::ops::Deref for Ref<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ptr
-    }
 }
 
 impl<'a, T: RefTarget> Ref<'a, T> {
     fn from_ptr(ptr: *const T::Target) -> Self {
-        let ptr = T::__wrap_ptr(ptr as *mut _);
         Self {
             ptr,
             marker: PhantomData,
@@ -129,25 +171,48 @@ impl<'a, T: RefTarget> Ref<'a, T> {
     fn from_ref(r: &T::Target) -> Self {
         Self::from_ptr(r as *const _)
     }
-}
 
-/// Mutable reference to `T`.
-pub struct Mut<'a, T> {
-    ptr: T,
-    marker: PhantomData<&'a mut T>,
-}
-
-impl<'a, T> std::ops::Deref for Mut<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ptr
+    fn as_ref(&self) -> &'a T {
+        // Since `wrap_mfem_sys` wraps the pointer in a transparent
+        // way, we can reinterpret it (the change in mutability of the
+        // pointer is fine as we return an immutable reference).
+        unsafe { std::mem::transmute::<&*const T::Target, &T>(&self.ptr) }
     }
 }
 
-impl<'a, T> std::ops::DerefMut for Mut<'a, T> {
+impl<'a, T: RefTarget> std::ops::Deref for Ref<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl<'a, T: RefTarget + ToOwned> From<Ref<'a, T>> for Cow<'a, T> {
+    fn from(value: Ref<'a, T>) -> Self {
+        Self::Borrowed(value.as_ref())
+    }
+}
+
+/// Mutable reference to `T`.
+pub struct Mut<'a, T: RefTarget> {
+    ptr: *mut T::Target,
+    marker: PhantomData<&'a mut T>,
+}
+
+impl<'a, T: RefTarget> std::ops::Deref for Mut<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { std::mem::transmute::<&*mut T::Target, &T>(&self.ptr) }
+    }
+}
+
+impl<'a, T: RefTarget> std::ops::DerefMut for Mut<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ptr
+        unsafe {
+            std::mem::transmute::<&mut *mut T::Target, &mut T>(&mut self.ptr)
+        }
     }
 }
 
@@ -160,101 +225,6 @@ impl<'a, T: RefTarget> Mut<'a, T> {
     // fn from_ref(r: &mut T::Target) -> Self {
     //     Self::from_ptr(r as *mut _)
     // }
-}
-
-/// Represent an owned value of type `T`.
-pub struct Owned<T: OwnedTarget> {
-    // Own a wrapped mfem_sys pointer that comes from a `UniquePtr`.
-    ptr: T,
-}
-
-impl<T: OwnedTarget> Drop for Owned<T> {
-    fn drop(&mut self) {
-        let raw = OwnedTarget::__mut_ptr(&mut self.ptr);
-        drop(unsafe { UniquePtr::from_raw(raw) });
-    }
-}
-
-impl<T: OwnedTarget> std::ops::Deref for Owned<T> {
-    type Target = T;
-
-    /// Return a reference to the (wrapped) MFEM object.
-    #[inline]
-    fn deref(&self) -> &T {
-        &self.ptr
-    }
-}
-
-impl<T: OwnedTarget> std::ops::DerefMut for Owned<T> {
-    /// Return a mutable reference to the (wrapped) MFEM object.
-    #[inline]
-    fn deref_mut(&mut self) -> &mut T {
-        &mut self.ptr
-    }
-}
-
-impl<T: OwnedTarget> Owned<T> {
-    fn from_uniqueptr(ptr: UniquePtr<T::Target>) -> Self {
-        let ptr = ptr.into_raw();
-        Owned {
-            ptr: T::__wrap_ptr(ptr),
-        }
-    }
-
-    fn emplace<N>(n: N) -> Self
-    where
-        N: New<Output = T::Target>,
-        T::Target: MakeCppStorage,
-    {
-        Self::from_uniqueptr(UniquePtr::emplace(n))
-    }
-
-    /// Takes ownership of the value and convert it to a pointer.
-    /// Suitable when the C++ function takes ownership of the pointer.
-    fn into_raw(mut self) -> *mut T::Target {
-        let ptr = OwnedTarget::__mut_ptr(&mut self.ptr);
-        std::mem::forget(self);
-        ptr
-    }
-}
-
-/// Represent "a value `T`", owned or borrowed.  If it is owned, this
-/// has the ownership of the value.
-pub enum A<'a, T: OwnedTarget> {
-    Owned(Owned<T>),
-    Ref(Ref<'a, T>),
-}
-
-impl<'a, T: OwnedTarget> std::ops::Deref for A<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Self::Owned(x) => &x,
-            Self::Ref(x) => x,
-        }
-    }
-}
-
-impl<'a, T: OwnedTarget> AsRef<T> for A<'a, T> {
-    fn as_ref(&self) -> &T {
-        match self {
-            Self::Owned(x) => &x,
-            Self::Ref(x) => x,
-        }
-    }
-}
-
-impl<'a, T: OwnedTarget> From<Owned<T>> for A<'a, T> {
-    fn from(value: Owned<T>) -> Self {
-        Self::Owned(value)
-    }
-}
-
-impl<'a, T: OwnedTarget> From<Ref<'a, T>> for A<'a, T> {
-    fn from(value: Ref<'a, T>) -> Self {
-        Self::Ref(value)
-    }
 }
 
 // Subclass relationships.  These cannot be declared as blanket
@@ -295,9 +265,9 @@ macro_rules! subclass_from {
     ($name: ident $(<$l: lifetime>)? ($sys_name:ident),
         $parent: ident ($sys_parent: ident)
     ) => {
-        impl $(<$l>)? From<Owned<$name $(<$l>)?>> for Owned<$parent $(<$l>)?> {
-            fn from(value: Owned<$name $(<$l>)?>) -> Self {
-                unsafe { std::mem::transmute::<Owned<$name>, Owned<$parent>>(value) }
+        impl $(<$l>)? From<$name $(<$l>)?> for $parent $(<$l>)? {
+            fn from(value: $name $(<$l>)?) -> Self {
+                unsafe { std::mem::transmute::<$name, $parent>(value) }
             }
         }
 
@@ -325,9 +295,9 @@ wrap_mfem_sys! {
     ArrayInt<>
 }
 
-impl Clone for Owned<ArrayInt> {
+impl Clone for ArrayInt {
     fn clone(&self) -> Self {
-        Owned::from_uniqueptr(mfem_sys::arrayint_copy(self.as_mfem()))
+        Self::from_uniqueptr(mfem_sys::arrayint_copy(self.as_mfem()))
     }
 }
 
@@ -365,13 +335,13 @@ impl std::ops::DerefMut for ArrayInt {
 }
 
 impl ArrayInt {
-    pub fn new() -> Owned<Self> {
-        Owned::from_uniqueptr(mfem_sys::arrayint_with_len(0))
+    pub fn new() -> Self {
+        Self::from_uniqueptr(mfem_sys::arrayint_with_len(0))
     }
 
-    pub fn with_len(len: usize) -> Owned<Self> {
+    pub fn with_len(len: usize) -> Self {
         let len = len.try_into().expect("Valid i32 len");
-        Owned::from_uniqueptr(mfem_sys::arrayint_with_len(len))
+        Self::from_uniqueptr(mfem_sys::arrayint_with_len(len))
     }
 
     #[doc(alias = "Array::Size")]
@@ -424,8 +394,8 @@ impl<'a> std::ops::DerefMut for Vector<'a> {
 }
 
 impl Vector<'static> {
-    pub fn new() -> Owned<Self> {
-        Owned::emplace(mfem_sys::Vector::new())
+    pub fn new() -> Self {
+        Self::emplace(mfem_sys::Vector::new())
     }
 }
 
@@ -484,18 +454,18 @@ wrap_mfem_sys! {
 }
 
 impl Mesh {
-    pub fn new() -> Owned<Self> {
-        Owned::emplace(mfem_sys::Mesh::new1())
+    pub fn new() -> Self {
+        Self::emplace(mfem_sys::Mesh::new1())
     }
 
     /// Return a mesh created by reading a file in MFEM, Netgen, or
     /// VTK format.
-    pub fn from_file(path: &str) -> Result<Owned<Self>, MfemError> {
+    pub fn from_file(path: &str) -> Result<Self, MfemError> {
         let generate_edges = c_int(1);
         let refine = c_int(1);
         let fix_orientation = true;
         let_cxx_string!(mesh_path = path);
-        Ok(Owned::emplace(mfem_sys::Mesh::new6(
+        Ok(Self::emplace(mfem_sys::Mesh::new6(
             &mesh_path,
             generate_edges,
             refine,
@@ -541,11 +511,10 @@ impl Mesh {
     where
         FEC: Fn(
             Option<Ref<'a, FiniteElementCollection>>,
-        ) -> A<'a, FiniteElementCollection>,
+        ) -> Cow<'a, FiniteElementCollection>,
     {
         let nodes = self.as_mfem().GetNodes2();
-        // Safety: The mesh is stored alongside the FEC it may
-        // contain.
+        // Safety: The mesh is stored alongside the FEC it may contain.
         let fec = if nodes.is_null() {
             fec(None)
         } else {
@@ -558,7 +527,10 @@ impl Mesh {
 
 pub struct MeshWithFEC<'a> {
     mesh: &'a mut Mesh,
-    fec: A<'a, FiniteElementCollection>,
+    // We use `Cow` for its ability to hold both an owned type and a
+    // reference—not because it is clone on write.  One could have
+    // defined our own type but this should already be familiar to the user.
+    fec: Cow<'a, FiniteElementCollection>,
 }
 
 impl<'a> std::fmt::Debug for MeshWithFEC<'a> {
@@ -625,13 +597,13 @@ wrap_mfem_sys! {
     FiniteElementCollection<>
 }
 
-// impl Clone for FiniteElementCollection {
-//     fn clone(&self) -> Self {
-//         let p = self.get_order();
-//         let raw = self.as_mfem().Clone(c_int(p));
-//         Owned::from_uniqueptr(unsafe { UniquePtr::from_raw(raw) })
-//     }
-// }
+impl Clone for FiniteElementCollection {
+    fn clone(&self) -> Self {
+        let p = self.get_order();
+        let raw = self.as_mfem().Clone(c_int(p));
+        Self::from_uniqueptr(unsafe { UniquePtr::from_raw(raw) })
+    }
+}
 
 /// Continuity type: defines the continuity of the field across
 /// element interfaces.
@@ -733,13 +705,13 @@ impl FiniteElementCollection {
     /// | RT0_3D | H(Div) | 1 | 1 / 0 | H_DIV | Left in for backward compatibility, consider using RT_ |
     /// | RT1_3D | H(Div) | 2 | 1 / 0 | H_DIV | Left in for backward compatibility, consider using RT_ |
     ///
-    pub fn new(name: &str) -> Owned<Self> {
+    pub fn new(name: &str) -> Self {
         unsafe {
             let c_name = name.as_ptr() as *const i8;
             // FIXME: aborts if the name is incorrect.
             let ptr = mfem_sys::FiniteElementCollection::New(c_name);
             let ptr = UniquePtr::from_raw(ptr);
-            Owned::from_uniqueptr(ptr)
+            Self::from_uniqueptr(ptr)
         }
     }
 }
@@ -756,8 +728,8 @@ wrap_mfem_sys! {
 
 subclass!(H1_FECollection, FiniteElementCollection);
 
-impl From<Owned<H1_FECollection>> for A<'_, FiniteElementCollection> {
-    fn from(value: Owned<H1_FECollection>) -> Self {
+impl From<H1_FECollection> for Cow<'_, FiniteElementCollection> {
+    fn from(value: H1_FECollection) -> Self {
         Self::Owned(value.into())
     }
 }
@@ -766,14 +738,14 @@ impl H1_FECollection {
     /// Return a H1-conforming (continuous) finite elements with order
     /// `p`, dimension `dim` and the default basis type
     /// [`GaussLobatto`][BasisType::GaussLobatto].
-    pub fn new(p: i32, dim: i32) -> Owned<Self> {
+    pub fn new(p: i32, dim: i32) -> Self {
         Self::with_basis(p, dim, BasisType::GaussLobatto)
     }
 
     /// Return a H1-conforming (continuous) finite elements with
     /// positive basis functions with order `p` and dimension `dim`.
     #[doc(alias = "H1Pos_FECollection")]
-    pub fn pos(p: i32, dim: i32) -> Owned<Self> {
+    pub fn pos(p: i32, dim: i32) -> Self {
         // https://docs.mfem.org/html/fe__coll_8hpp_source.html#l00305
         Self::with_basis(p, dim, BasisType::Positive)
     }
@@ -782,14 +754,14 @@ impl H1_FECollection {
     /// with order `p` and dimension `dim`.  Current implementation
     /// works in 2D only; 3D version is in development.
     #[doc(alias = "H1Ser_FECollection")]
-    pub fn ser(p: i32, dim: i32) -> Owned<Self> {
+    pub fn ser(p: i32, dim: i32) -> Self {
         Self::with_basis(p, dim, BasisType::Serendipity)
     }
 
     /// Return a H1-conforming (continuous) finite elements with order
     /// `p`, dimension `dim` and basis type `btype`.
-    pub fn with_basis(p: i32, dim: i32, btype: BasisType) -> Owned<Self> {
-        Owned::emplace(mfem_sys::H1_FECollection::new(
+    pub fn with_basis(p: i32, dim: i32, btype: BasisType) -> Self {
+        Self::emplace(mfem_sys::H1_FECollection::new(
             c_int(p),
             c_int(dim),
             c_int(btype as i32),
@@ -801,7 +773,7 @@ impl H1_FECollection {
     /// elements (faces,edges,vertices); these are the trace FEs of
     /// the H1-conforming FEs.
     #[doc(alias = "H1_Trace_FECollection")]
-    pub fn trace(p: i32, dim: i32, btype: BasisType) -> Owned<Self> {
+    pub fn trace(p: i32, dim: i32, btype: BasisType) -> Self {
         Self::with_basis(p, dim - 1, btype)
     }
 }
@@ -1080,7 +1052,7 @@ pub struct FiniteElementSpaceBuilder<'a> {
 }
 
 impl<'a> FiniteElementSpaceBuilder<'a> {
-    pub fn build(&mut self) -> Owned<FiniteElementSpace<'a>> {
+    pub fn build(&mut self) -> FiniteElementSpace<'a> {
         let ptr = mfem_sys::FES_new(
             self.mesh.as_mfem_mut(),
             self.fec.as_mfem(),
@@ -1121,8 +1093,8 @@ impl<'fes> GridFunction<'fes> {
     // XXX can you pass a different `fes` than the one for `Linearform`?
     /// Construct a GridFunction associated with the
     /// FiniteElementSpace `fes`.
-    pub fn new(fespace: &'fes FiniteElementSpace) -> Owned<Self> {
-        Owned::emplace(unsafe {
+    pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
+        Self::emplace(unsafe {
             mfem_sys::GridFunction::new2(fespace.as_mfem_internal_ptr())
         })
     }
@@ -1196,11 +1168,11 @@ wrap_mfem_sys! {
 subclass!(LinearForm<'deps>, Vector);
 
 impl<'fes> LinearForm<'fes> {
-    pub fn new(fespace: &'fes FiniteElementSpace) -> Owned<Self> {
+    pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
         let lfi = unsafe {
             mfem_sys::LinearForm::new1(fespace.as_mfem_internal_ptr())
         };
-        Owned::emplace(lfi)
+        Self::emplace(lfi)
     }
 
     pub fn fe_space(&self) -> Ref<'fes, FiniteElementSpace> {
@@ -1214,7 +1186,7 @@ impl<'fes> LinearForm<'fes> {
 
     pub fn add_domain_integrator<'deps: 'fes, Lfi>(&mut self, lfi: Lfi)
     where
-        Lfi: Into<Owned<LinearFormIntegrator<'deps>>>,
+        Lfi: Into<LinearFormIntegrator<'deps>>,
     {
         let lfi = lfi.into();
         unsafe {
@@ -1247,8 +1219,8 @@ wrap_mfem_sys! {
 subclass!(ConstantCoefficient, Coefficient);
 
 impl ConstantCoefficient {
-    pub fn new(c: f64) -> Owned<Self> {
-        Owned::emplace(mfem_sys::ConstantCoefficient::new(c))
+    pub fn new(c: f64) -> Self {
+        Self::emplace(mfem_sys::ConstantCoefficient::new(c))
     }
 }
 
@@ -1296,18 +1268,18 @@ subclass_from!(DomainLFIntegrator<'coeff>, LinearFormIntegrator);
 
 impl<'coeff> DomainLFIntegrator<'coeff> {
     /// Return a new linear form integrator v ↦ ∫ fv with order 2.
-    pub fn new(qf: &'coeff mut Coefficient) -> Owned<Self> {
+    pub fn new(qf: &'coeff mut Coefficient) -> Self {
         Self::with_order(qf, 2)
     }
 
     /// Return a new linear form integrator v ↦  ∫ fv with order `a`.
-    pub fn with_order(qf: &'coeff mut Coefficient, a: usize) -> Owned<Self> {
+    pub fn with_order(qf: &'coeff mut Coefficient, a: usize) -> Self {
         // Safety: The result does not seem to take ownership of `qf`.
         let qf = qf.as_mfem_mut();
         let a = c_int(a as i32);
         let options = c_int(0);
         let lfi = mfem_sys::DomainLFIntegrator::new(qf, a, options);
-        Owned::emplace(lfi)
+        Self::emplace(lfi)
     }
 }
 
@@ -1322,17 +1294,17 @@ subclass!(BilinearForm<'fes>, Matrix);
 
 impl<'fes> BilinearForm<'fes> {
     /// Creates bilinear form associated with Finite Element space `fespace`.
-    pub fn new(fespace: &'fes FiniteElementSpace) -> Owned<Self> {
+    pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
         let b = unsafe {
             mfem_sys::BilinearForm::new2(fespace.as_mfem_internal_ptr())
         };
-        Owned::emplace(b)
+        Self::emplace(b)
     }
 
     /// Add new Domain Integrator.
     pub fn add_domain_integrator<'deps, Bfi>(&mut self, bfi: Bfi)
     where
-        Bfi: Into<Owned<BilinearFormIntegrator<'deps>>>,
+        Bfi: Into<BilinearFormIntegrator<'deps>>,
     {
         let bfi = bfi.into();
         unsafe {
@@ -1412,16 +1384,16 @@ wrap_mfem_sys! {
 subclass!(DiffusionIntegrator<'coeff>, BilinearFormIntegrator);
 
 impl<'coeff> DiffusionIntegrator<'coeff> {
-    pub fn new() -> Owned<Self> {
+    pub fn new() -> Self {
         let bfi = unsafe { mfem_sys::DiffusionIntegrator::new(ptr::null()) };
-        Owned::emplace(bfi)
+        Self::emplace(bfi)
     }
 
-    pub fn with_coeff(coeff: &'coeff mut Coefficient) -> Owned<Self> {
+    pub fn with_coeff(coeff: &'coeff mut Coefficient) -> Self {
         let coeff = coeff.as_mfem_mut();
         let ir: *const mfem_sys::IntegrationRule = ptr::null();
         let bfi = unsafe { mfem_sys::DiffusionIntegrator::new1(coeff, ir) };
-        Owned::emplace(bfi)
+        Self::emplace(bfi)
     }
 }
 
@@ -1441,8 +1413,8 @@ wrap_mfem_sys! {
 }
 
 impl OperatorHandle<'static> {
-    pub fn new() -> Owned<Self> {
-        Owned::emplace(mfem_sys::OperatorHandle::new())
+    pub fn new() -> Self {
+        Self::emplace(mfem_sys::OperatorHandle::new())
     }
 }
 
@@ -1514,19 +1486,6 @@ impl<'a, 'deps: 'a> TryFrom<&'a OperatorHandle<'deps>>
     }
 }
 
-impl<'a, 'deps: 'a> TryFrom<&'a Owned<OperatorHandle<'deps>>>
-    for Ref<'a, SparseMatrix>
-{
-    type Error = MfemError;
-
-    fn try_from(
-        o: &'a Owned<OperatorHandle<'deps>>,
-    ) -> Result<Self, Self::Error> {
-        let o: &OperatorHandle = o;
-        Ref::try_from(o)
-    }
-}
-
 ////////////
 // Solver //
 ////////////
@@ -1560,14 +1519,14 @@ wrap_mfem_sys! {
 subclass!(GSSmoother<'mat>, SparseSmoother);
 
 impl<'mat> GSSmoother<'mat> {
-    pub fn new(t: i32, it: i32) -> Owned<Self> {
+    pub fn new(t: i32, it: i32) -> Self {
         let gs = mfem_sys::GSSmoother::new(c_int(t), c_int(it));
-        Owned::emplace(gs)
+        Self::emplace(gs)
     }
 
-    pub fn with_matrix(a: &'mat SparseMatrix, t: i32, it: i32) -> Owned<Self> {
+    pub fn with_matrix(a: &'mat SparseMatrix, t: i32, it: i32) -> Self {
         let gs = mfem_sys::GSSmoother::new1(a.as_mfem(), c_int(t), c_int(it));
-        Owned::emplace(gs)
+        Self::emplace(gs)
     }
 
     /// Matrix vector multiplication with GS Smoother.

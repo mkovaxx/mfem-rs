@@ -130,7 +130,7 @@ fn main() -> anyhow::Result<()> {
 
     // 11. Solve the linear system A X = B.
     //     Use a simple symmetric Gauss-Seidel preconditioner with PCG.
-    let a_sparse: Ref<'_, SparseMatrix> = (&*a_mat).try_into()?;
+    let a_sparse: Ref<'_, SparseMatrix> = (&a_mat).try_into()?;
     let mut m_mat = GSSmoother::with_matrix(&a_sparse, 0, 1);
     mfem::pcg(
         &a_mat.op(),
