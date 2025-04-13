@@ -149,6 +149,7 @@ impl<T: RefTarget> Owned for T {
 }
 
 /// Immutable reference to `T`.
+#[must_use]
 pub struct Ref<'a, T: RefTarget> {
     // Some functions return a *const mfem_sys::T that we cannot
     // reinterpret as a reference to T (see `wrap_mfem_sys`) because
@@ -195,6 +196,7 @@ impl<'a, T: RefTarget + ToOwned> From<Ref<'a, T>> for Cow<'a, T> {
 }
 
 /// Mutable reference to `T`.
+#[must_use]
 pub struct Mut<'a, T: RefTarget> {
     ptr: *mut T::Target,
     marker: PhantomData<&'a mut T>,
@@ -335,10 +337,12 @@ impl std::ops::DerefMut for ArrayInt {
 }
 
 impl ArrayInt {
+    #[must_use]
     pub fn new() -> Self {
         Self::from_uniqueptr(mfem_sys::arrayint_with_len(0))
     }
 
+    #[must_use]
     pub fn with_len(len: usize) -> Self {
         let len = len.try_into().expect("Valid i32 len");
         Self::from_uniqueptr(mfem_sys::arrayint_with_len(len))
@@ -346,6 +350,7 @@ impl ArrayInt {
 
     #[doc(alias = "Array::Size")]
     #[inline]
+    #[must_use]
     pub fn len(&self) -> usize {
         let len = self.as_mfem().Size();
         debug_assert!(len >= 0);
@@ -394,6 +399,7 @@ impl<'a> std::ops::DerefMut for Vector<'a> {
 }
 
 impl Vector<'static> {
+    #[must_use]
     pub fn new() -> Self {
         Self::emplace(mfem_sys::Vector::new())
     }
@@ -401,6 +407,7 @@ impl Vector<'static> {
 
 impl<'a> Vector<'a> {
     #[inline]
+    #[must_use]
     pub fn len(&self) -> usize {
         let l: i32 = self.as_mfem().Size().into();
         debug_assert!(l >= 0);
@@ -417,18 +424,21 @@ wrap_mfem_sys! {
 }
 
 impl<'deps> Operator<'deps> {
+    #[must_use]
     pub fn height(&self) -> usize {
         let h: i32 = self.as_mfem().Height();
         debug_assert!(h >= 0);
         h as usize
     }
 
+    #[must_use]
     pub fn width(&self) -> usize {
         let w: i32 = self.as_mfem().Width();
         debug_assert!(w >= 0);
         w as usize
     }
 
+    #[must_use]
     pub fn get_type(&self) -> OperatorType {
         self.as_mfem().GetType()
     }
@@ -454,12 +464,14 @@ wrap_mfem_sys! {
 }
 
 impl Mesh {
+    #[must_use]
     pub fn new() -> Self {
         Self::emplace(mfem_sys::Mesh::new1())
     }
 
     /// Return a mesh created by reading a file in MFEM, Netgen, or
     /// VTK format.
+    #[must_use]
     pub fn from_file(path: &str) -> Result<Self, MfemError> {
         let generate_edges = c_int(1);
         let refine = c_int(1);
@@ -473,10 +485,12 @@ impl Mesh {
         )))
     }
 
+    #[must_use]
     pub fn dimension(&self) -> i32 {
         self.as_mfem().Dimension().into()
     }
 
+    #[must_use]
     pub fn get_num_elems(&self) -> i32 {
         self.as_mfem().GetNE().into()
     }
@@ -507,6 +521,7 @@ impl Mesh {
         }
     }
 
+    #[must_use]
     pub fn with_fec<'a, FEC>(&'a mut self, fec: FEC) -> MeshWithFEC<'a>
     where
         FEC: Fn(
@@ -542,15 +557,18 @@ impl<'a> std::fmt::Debug for MeshWithFEC<'a> {
 }
 
 impl<'a> MeshWithFEC<'a> {
+    #[must_use]
     pub fn mesh(&self) -> &Mesh {
         self.mesh
     }
 
+    #[must_use]
     pub fn fec(&self) -> &FiniteElementCollection {
         &*self.fec
     }
 }
 
+#[must_use]
 pub struct MeshSave<'a> {
     mesh: &'a Mesh,
     precision: i32,
@@ -631,16 +649,19 @@ impl ContType {
 }
 
 impl FiniteElementCollection {
+    #[must_use]
     pub fn get_name(&self) -> String {
         let cstr = self.as_mfem().Name();
         let cstr = unsafe { std::ffi::CStr::from_ptr(cstr) };
         cstr.to_owned().into_string().expect("Name must be ASCII")
     }
 
+    #[must_use]
     pub fn get_cont(&self) -> ContType {
         ContType::from_int(self.as_mfem().GetContType())
     }
 
+    #[must_use]
     pub fn get_order(&self) -> i32 {
         self.as_mfem().GetOrder().into()
     }
@@ -705,6 +726,7 @@ impl FiniteElementCollection {
     /// | RT0_3D | H(Div) | 1 | 1 / 0 | H_DIV | Left in for backward compatibility, consider using RT_ |
     /// | RT1_3D | H(Div) | 2 | 1 / 0 | H_DIV | Left in for backward compatibility, consider using RT_ |
     ///
+    #[must_use]
     pub fn new(name: &str) -> Self {
         unsafe {
             let c_name = name.as_ptr() as *const i8;
@@ -723,6 +745,7 @@ impl FiniteElementCollection {
 wrap_mfem_sys! {
     /// Arbitrary order H1-conforming (continuous) finite element.
     /// Implements [`FiniteElementCollection`].
+    #[must_use]
     H1_FECollection<>
 }
 
@@ -965,6 +988,7 @@ wrap_mfem_sys! {
 impl<'a> FiniteElementSpace<'a> {
     /// Return a new space from the `mesh` an Finite Element
     /// Collection `fec`.
+    #[must_use]
     pub fn new<'mesh: 'a>(
         mesh_fec: &'a mut MeshWithFEC<'a>,
     ) -> FiniteElementSpaceBuilder<'a> {
@@ -989,21 +1013,25 @@ impl<'a> FiniteElementSpace<'a> {
     }
 
     #[doc(alias = "Conforming")]
+    #[must_use]
     pub fn is_conforming(&self) -> bool {
         self.as_mfem().Conforming()
     }
 
     #[doc(alias = "Nonconforming")]
+    #[must_use]
     pub fn is_non_conforming(&self) -> bool {
         self.as_mfem().Nonconforming()
     }
 
     /// Return the number of vector true (conforming) dofs.
+    #[must_use]
     pub fn get_true_vsize(&self) -> i32 {
         self.as_mfem().GetTrueVSize()
     }
 
     /// Returns vector dimension.
+    #[must_use]
     pub fn get_vdim(&self) -> usize {
         let d = self.as_mfem().GetVDim();
         debug_assert!(d >= 0);
@@ -1052,6 +1080,7 @@ pub struct FiniteElementSpaceBuilder<'a> {
 }
 
 impl<'a> FiniteElementSpaceBuilder<'a> {
+    #[must_use]
     pub fn build(&mut self) -> FiniteElementSpace<'a> {
         let ptr = mfem_sys::FES_new(
             self.mesh.as_mfem_mut(),
@@ -1093,6 +1122,7 @@ impl<'fes> GridFunction<'fes> {
     // XXX can you pass a different `fes` than the one for `Linearform`?
     /// Construct a GridFunction associated with the
     /// FiniteElementSpace `fes`.
+    #[must_use]
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
         Self::emplace(unsafe {
             mfem_sys::GridFunction::new2(fespace.as_mfem_internal_ptr())
@@ -1130,12 +1160,14 @@ impl<'fes> GridFunction<'fes> {
     }
 }
 
+#[must_use]
 pub struct GridFunctionSave<'a> {
     gf: &'a GridFunction<'a>,
     precision: i32,
 }
 
 impl GridFunctionSave<'_> {
+    #[must_use]
     pub fn precision(&self, p: i32) -> Self {
         Self {
             gf: self.gf,
@@ -1168,6 +1200,7 @@ wrap_mfem_sys! {
 subclass!(LinearForm<'deps>, Vector);
 
 impl<'fes> LinearForm<'fes> {
+    #[must_use]
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
         let lfi = unsafe {
             mfem_sys::LinearForm::new1(fespace.as_mfem_internal_ptr())
@@ -1219,6 +1252,7 @@ wrap_mfem_sys! {
 subclass!(ConstantCoefficient, Coefficient);
 
 impl ConstantCoefficient {
+    #[must_use]
     pub fn new(c: f64) -> Self {
         Self::emplace(mfem_sys::ConstantCoefficient::new(c))
     }
@@ -1268,11 +1302,13 @@ subclass_from!(DomainLFIntegrator<'coeff>, LinearFormIntegrator);
 
 impl<'coeff> DomainLFIntegrator<'coeff> {
     /// Return a new linear form integrator v ↦ ∫ fv with order 2.
+    #[must_use]
     pub fn new(qf: &'coeff mut Coefficient) -> Self {
         Self::with_order(qf, 2)
     }
 
     /// Return a new linear form integrator v ↦  ∫ fv with order `a`.
+    #[must_use]
     pub fn with_order(qf: &'coeff mut Coefficient, a: usize) -> Self {
         // Safety: The result does not seem to take ownership of `qf`.
         let qf = qf.as_mfem_mut();
@@ -1294,6 +1330,7 @@ subclass!(BilinearForm<'fes>, Matrix);
 
 impl<'fes> BilinearForm<'fes> {
     /// Creates bilinear form associated with Finite Element space `fespace`.
+    #[must_use]
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
         let b = unsafe {
             mfem_sys::BilinearForm::new2(fespace.as_mfem_internal_ptr())
@@ -1384,11 +1421,13 @@ wrap_mfem_sys! {
 subclass!(DiffusionIntegrator<'coeff>, BilinearFormIntegrator);
 
 impl<'coeff> DiffusionIntegrator<'coeff> {
+    #[must_use]
     pub fn new() -> Self {
         let bfi = unsafe { mfem_sys::DiffusionIntegrator::new(ptr::null()) };
         Self::emplace(bfi)
     }
 
+    #[must_use]
     pub fn with_coeff(coeff: &'coeff mut Coefficient) -> Self {
         let coeff = coeff.as_mfem_mut();
         let ir: *const mfem_sys::IntegrationRule = ptr::null();
@@ -1433,11 +1472,13 @@ impl<'a, 'deps> From<&'a OperatorHandle<'deps>> for Ref<'a, Operator<'deps>> {
 
 impl<'deps> OperatorHandle<'deps> {
     #[inline]
+    #[must_use]
     pub fn op(&self) -> Ref<'_, Operator<'deps>> {
         let o = mfem_sys::OperatorHandle_oper(self.as_mfem());
         Ref::from_ref(o)
     }
 
+    #[must_use]
     pub fn get_type(&self) -> OperatorType {
         self.as_mfem().Type()
     }
@@ -1519,11 +1560,13 @@ wrap_mfem_sys! {
 subclass!(GSSmoother<'mat>, SparseSmoother);
 
 impl<'mat> GSSmoother<'mat> {
+    #[must_use]
     pub fn new(t: i32, it: i32) -> Self {
         let gs = mfem_sys::GSSmoother::new(c_int(t), c_int(it));
         Self::emplace(gs)
     }
 
+    #[must_use]
     pub fn with_matrix(a: &'mat SparseMatrix, t: i32, it: i32) -> Self {
         let gs = mfem_sys::GSSmoother::new1(a.as_mfem(), c_int(t), c_int(it));
         Self::emplace(gs)
