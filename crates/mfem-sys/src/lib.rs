@@ -231,10 +231,10 @@ mod ffi_cxx {
         #[namespace = "mfem"]
         #[cxx_name = "FunctionCoefficient"]
         type FunctionCoefficientCxx = crate::FunctionCoefficient;
-        type c_void;
+        type cxx_void;
         unsafe fn FunctionCoefficient_new(
-            f: unsafe fn(&VectorCxx, data: *mut c_void) -> real,
-            data: *mut c_void,
+            f: unsafe fn(&VectorCxx, data: *mut cxx_void) -> real,
+            data: *mut cxx_void,
         ) -> UniquePtr<FunctionCoefficientCxx>;
 
         #[namespace = "mfem"]

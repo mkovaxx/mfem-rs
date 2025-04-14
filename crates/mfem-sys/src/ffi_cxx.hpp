@@ -57,7 +57,7 @@ std::unique_ptr<Array<T>> array_from_slice(T* data, int len, bool own_data) {
 
 using Element_Type = Element::Type;
 
-using c_void = void;
+using cxx_void = void;
 
 std::unique_ptr<FunctionCoefficient>
 FunctionCoefficient_new(rust::Fn<real_t(mfem::Vector const &, void*)> f,

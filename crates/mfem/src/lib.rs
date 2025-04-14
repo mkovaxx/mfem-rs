@@ -1348,6 +1348,39 @@ impl ConstantCoefficient {
     }
 }
 
+/////////////////////////
+// FunctionCoefficient //
+/////////////////////////
+
+wrap_mfem_sys! {
+    /// A general function coefficient.
+    FunctionCoefficient<>
+}
+
+subclass!(FunctionCoefficient, Coefficient);
+
+impl FunctionCoefficient {
+    pub fn new<F>(mut f: F) -> Self
+    where
+        F: FnMut(&Vector) -> f64,
+    {
+        fn eval<F1>(
+            x: &mfem_sys::Vector,
+            d: *mut mfem_sys::cxx_void,
+        ) -> mfem_sys::Real
+        where
+            F1: FnMut(&Vector) -> f64,
+        {
+            let f = unsafe { &mut *(d as *mut F1) };
+            let x = Ref::from_ref(x);
+            mfem_sys::Real(f(&*x))
+        }
+        let d = &mut f as *mut F as *mut mfem_sys::cxx_void;
+        let fc = unsafe { mfem_sys::FunctionCoefficient_new(eval::<F>, d) };
+        Owned::from_uniqueptr(fc)
+    }
+}
+
 //////////////////////////
 // LinearFormIntegrator //
 //////////////////////////
