@@ -521,10 +521,18 @@ impl Mesh {
         }
     }
 
+    /// Add a [`FiniteElementCollection`] to the mesh `self`.
+    ///
+    /// The argument of the function `fec` is the `FiniteElementCollection`
+    /// associated to the nodes of the mesh, if any.  This collection
+    /// is used to represent the curvature of the elements (that is,
+    /// how the geometry of the problem is discretized).  The
+    /// `FiniteElementCollection` returned by `fec` is the one that
+    /// will be used to discretize the PDE.
     #[must_use]
     pub fn with_fec<'a, FEC>(&'a mut self, fec: FEC) -> MeshWithFEC<'a>
     where
-        FEC: Fn(
+        FEC: FnOnce(
             Option<Ref<'a, FiniteElementCollection>>,
         ) -> Cow<'a, FiniteElementCollection>,
     {
