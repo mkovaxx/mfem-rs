@@ -48,6 +48,7 @@ namespace acxx {
     SUBCLASS(SparseSmoother, MatrixInverse)
     SUBCLASS(GSSmoother, SparseSmoother)
     SUBCLASS(H1_FECollection, FiniteElementCollection)
+    SUBCLASS(L2_FECollection, FiniteElementCollection)
 
     const int NumBasisTypes = mfem::BasisType::NumBasisTypes;
 

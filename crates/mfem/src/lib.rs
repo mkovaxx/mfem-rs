@@ -603,6 +603,55 @@ pub enum RefAlgo {
 
 pub use mfem_sys::BasisType;
 
+/// Define how reference functions are mapped to physical space.
+///
+/// A reference function $û(x̂)$ can be mapped to a function $u(x)$ on
+/// a general physical element in following ways:
+///
+/// - $x = T(x̂)$ is the image of the reference point $x̂$,
+/// - $J = J(x̂)$ is the Jacobian matrix of the transformation T,
+/// - $w = w(x̂) = \det(J)$ is the transformation weight factor for square J,
+/// - $w = w(x̂) = \det(Jᵀ J)^{1/2}$ is the transformation weight factor
+///   in general.
+#[derive(Debug, Clone, Copy)]
+pub enum MapType {
+    /// Used to distinguish an unset MapType variable from the known
+    /// values below.
+    Unknown = -1,
+    /// For scalar fields; preserves point values u(x) = û(x̂).
+    Value = 0,
+    /// For scalar fields; preserves volume integrals u(x) = (1/w) û(x̂).
+    Integral = 1,
+    /// For vector fields; preserves surface integrals of the normal
+    /// component u(x) = (J/w) û(x̂).
+    HDiv = 2,
+    /// For vector fields; preserves line integrals of the tangential
+    /// component $u(x) = J⁻ᵀ û(x̂)$ (square J),
+    /// $u(x) = J (Jᵀ J)⁻¹ û(x̂)$ (general J).
+    HCurl = 3,
+}
+
+#[cfg(test)]
+#[test]
+fn test_map_type() {
+    use mfem_sys::FiniteElement_MapType::*;
+    fn check(x: mfem_sys::FiniteElement_MapType) -> i32 {
+        // Check exhaustiveness.
+        match x {
+            UNKNOWN_MAP_TYPE => UNKNOWN_MAP_TYPE as i32,
+            VALUE => VALUE as i32,
+            INTEGRAL => INTEGRAL as i32,
+            H_DIV => H_DIV as i32,
+            H_CURL => H_CURL as i32,
+        }
+    }
+    assert_eq!(check(UNKNOWN_MAP_TYPE), MapType::Unknown as i32);
+    assert_eq!(check(VALUE), MapType::Value as i32);
+    assert_eq!(check(INTEGRAL), MapType::Integral as i32);
+    assert_eq!(check(H_DIV), MapType::HDiv as i32);
+    assert_eq!(check(H_CURL), MapType::HCurl as i32);
+}
+
 /////////////////////////////
 // FiniteElementCollection //
 /////////////////////////////
@@ -798,6 +847,47 @@ impl H1_FECollection {
     #[doc(alias = "H1_Trace_FECollection")]
     pub fn trace(p: i32, dim: i32, btype: BasisType) -> Self {
         Self::with_basis(p, dim - 1, btype)
+    }
+}
+
+/////////////////////
+// L2_FECollection //
+/////////////////////
+
+#[allow(non_camel_case_types)]
+pub type DG_FECollection = L2_FECollection;
+
+wrap_mfem_sys! {
+    /// Arbitrary order "L2-conforming" discontinuous finite elements.
+    #[must_use]
+    L2_FECollection<>
+}
+
+subclass!(L2_FECollection, FiniteElementCollection);
+
+impl From<L2_FECollection> for Cow<'_, FiniteElementCollection> {
+    fn from(value: L2_FECollection) -> Self {
+        Self::Owned(value.into())
+    }
+}
+
+impl L2_FECollection {
+    pub fn new(p: i32, dim: i32) -> Self {
+        Self::with_basis(p, dim, BasisType::GaussLegendre, MapType::Value)
+    }
+
+    pub fn with_basis(
+        p: i32,
+        dim: i32,
+        btype: BasisType,
+        map_type: MapType,
+    ) -> Self {
+        Self::emplace(mfem_sys::L2_FECollection::new(
+            c_int(p),
+            c_int(dim),
+            c_int(btype as i32),
+            c_int(map_type as i32),
+        ))
     }
 }
 
