@@ -469,6 +469,31 @@ impl Mesh {
         Self::emplace(mfem_sys::Mesh::new1())
     }
 
+    // FIXME: revisit interface
+    pub fn init<const DIM: usize>(
+        nvert: usize,
+        nelem: usize,
+        nbdr_elem: usize,
+        space_dim: Option<usize>,
+    ) -> MeshBuilder<DIM> {
+        if nvert > i32::MAX as usize {
+            panic!("Mesh::init: Number of vertices exceeds i32::MAX.");
+        }
+        let space_dim = space_dim.map(|x| x as i32).unwrap_or(-1);
+        let inner = Self::emplace(mfem_sys::Mesh::new5(
+            c_int(DIM as i32),
+            c_int(nvert as i32),
+            c_int(nelem as i32),
+            c_int(nbdr_elem as i32),
+            c_int(space_dim as i32),
+        ));
+        MeshBuilder {
+            inner,
+            nvert,
+            nvert_provided: 0,
+        }
+    }
+
     /// Return a mesh created by reading a file in MFEM, Netgen, or
     /// VTK format.
     #[must_use]
@@ -548,6 +573,80 @@ impl Mesh {
     }
 }
 
+pub struct MeshBuilder<const DIM: usize = 2> {
+    inner: Mesh,
+    nvert: usize,
+    nvert_provided: usize,
+}
+
+impl<const DIM: usize> MeshBuilder<DIM> {
+    /// Add the vertex of coordinates `coord` to the mesh and return
+    /// its index.  The dimension `N` must be the same as the one
+    /// given to [`Mesh::init`] or this method will panic.
+    pub fn add_vertex(&mut self, coord: [f64; DIM]) -> usize {
+        let idx: i32 = unsafe {
+            self.inner.as_mfem_mut().AddVertex1(coord.as_ptr()).into()
+        };
+        debug_assert!(idx >= 0);
+        let idx = idx as usize;
+        if idx >= self.nvert {
+            panic!(
+                "Mesh::init declared {} vertices but this one has index {}",
+                self.nvert, idx
+            );
+        }
+        self.nvert_provided += 1;
+        idx
+    }
+
+    /// Adds a triangle to the mesh given by 3 vertices `v[0]` through
+    /// `v[2]`.  The default attribute `attr` should be 1.
+    pub fn add_triangle(&mut self, v: [usize; 3], attr: i32) -> usize {
+        // FIXME: what if v1,... are not "in the range"?
+        // The program crashes!!
+        if v.iter().any(|&v| v >= self.nvert) {
+            panic!(
+                "Mesh::init some vertex indices of {v:?} are not in \
+                the range 0..{}",
+                self.nvert
+            );
+        }
+        let vi: [c_int; 3] = v.map(|v| c_int(v as i32));
+        let attr = c_int(attr);
+        let tr: i32 = unsafe {
+            self.inner
+                .as_mfem_mut()
+                .AddTriangle1(vi.as_ptr(), attr)
+                .into()
+        };
+        tr as usize
+    }
+
+    pub fn add_bdr_segment(&mut self, v: [usize; 2], attr: i32) -> usize {
+        let v0 = c_int(v[0] as i32);
+        let v1 = c_int(v[1] as i32);
+        let attr = c_int(attr);
+        let idx: i32 =
+            self.inner.as_mfem_mut().AddBdrSegment(v0, v1, attr).into();
+        idx as usize
+    }
+
+    pub fn finalize(mut self) -> Mesh {
+        if self.nvert != self.nvert_provided {
+            panic!(
+                "Mesh::init declared {} vertices but only {} were \
+                provided",
+                self.nvert, self.nvert_provided
+            );
+        }
+        // Different Finalize.  Add an additional parameter to
+        // MeshBuilder to enable specific methods according to an
+        // initial choice?
+        self.inner.as_mfem_mut().FinalizeMesh(c_int(0), true);
+        self.inner
+    }
+}
+
 pub struct MeshWithFEC<'a> {
     mesh: &'a mut Mesh,
     // We use `Cow` for its ability to hold both an owned type and a
@@ -599,6 +698,7 @@ impl<'a> MeshSave<'a> {
 }
 
 /// Algorithm for [`Mesh::uniform_refinement`].
+#[derive(Debug, Clone, Copy)]
 pub enum RefAlgo {
     /// Algorithm "A".
     ///
