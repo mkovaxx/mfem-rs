@@ -232,15 +232,19 @@ impl<'a, T: RefTarget> Mut<'a, T> {
 // Subclass relationships.  These cannot be declared as blanket
 // implementations because the type must be local.
 macro_rules! subclass {
-    ($name: ident $(<$l: lifetime>)?, $parent: ident) => {
-        subclass!($name $(<$l>)? ($name), $parent ($parent));
+    // `$l_parent` must only be 'static and used when there is no $l but the
+    // parent has a lifetime (due to other children having dependencies).
+    ($name: ident $(<$l: lifetime>)?,
+        $parent: ident $(<$l_parent: lifetime>)?
+    ) => {
+        subclass!($name $(<$l>)? ($name), $parent $(<$l_parent>)? ($parent));
     };
 
     ($name: ident $(<$l: lifetime>)? ($sys_name:ident),
-        $parent: ident ($sys_parent: ident)
+        $parent: ident $(<$l_parent: lifetime>)? ($sys_parent: ident)
     ) => {
         impl $(<$l>)? std::ops::Deref for $name $(<$l>)? {
-            type Target = $parent $(<$l>)?;
+            type Target = $parent $(<$l>)? $(<$l_parent>)?;
 
             fn deref(&self) -> &Self::Target {
                 // $name is a transparent wrapper of a pointer to
@@ -255,19 +259,24 @@ macro_rules! subclass {
             }
         }
 
-        subclass_from!($name $(<$l>)? ($sys_name), $parent ($sys_parent));
+        subclass_from!($name $(<$l>)? ($sys_name),
+            $parent $(<$l_parent>)? ($sys_parent));
     };
 }
 
 macro_rules! subclass_from {
-    ($name: ident $(<$l: lifetime>)?, $parent: ident) => {
-        subclass_from!($name $(<$l>)? ($name), $parent ($parent));
+    ($name: ident $(<$l: lifetime>)?,
+        $parent: ident $(<$l_parent: lifetime>)?
+    ) => {
+        subclass_from!($name $(<$l>)? ($name),
+            $parent $(<$l_parent>)? ($parent));
     };
 
     ($name: ident $(<$l: lifetime>)? ($sys_name:ident),
-        $parent: ident ($sys_parent: ident)
+        $parent: ident $(<$l_parent: lifetime>)? ($sys_parent: ident)
     ) => {
-        impl $(<$l>)? From<$name $(<$l>)?> for $parent $(<$l>)? {
+        impl $(<$l>)? From<$name $(<$l>)?>
+        for $parent $(<$l>)? $(<$l_parent>)? {
             fn from(value: $name $(<$l>)?) -> Self {
                 unsafe { std::mem::transmute::<$name, $parent>(value) }
             }
@@ -1339,7 +1348,7 @@ impl<'fes> GridFunction<'fes> {
         }
     }
 
-    /// Project `coeff` [`Coefficient`] to this [`GridFunction`].
+    /// Project `coeff` to this [`GridFunction`].
     ///
     /// The projection computation depends on the choice of the
     /// [`FiniteElementSpace`] `fespace`.
@@ -1432,11 +1441,11 @@ impl<'fes> LinearForm<'fes> {
 /////////////////
 
 wrap_mfem_sys! {
-    Coefficient<>
+    Coefficient<'deps>
 }
 
 wrap_mfem_sys! {
-    VectorCoefficient<>
+    VectorCoefficient<'deps>
 }
 
 /////////////////////////
@@ -1447,7 +1456,7 @@ wrap_mfem_sys! {
     ConstantCoefficient<>
 }
 
-subclass!(ConstantCoefficient, Coefficient);
+subclass!(ConstantCoefficient, Coefficient<'static>);
 
 impl ConstantCoefficient {
     #[must_use]
@@ -1462,30 +1471,58 @@ impl ConstantCoefficient {
 
 wrap_mfem_sys! {
     /// A general function coefficient.
-    FunctionCoefficient<>
+    FunctionCoefficient<'deps>
 }
 
-subclass!(FunctionCoefficient, Coefficient);
+subclass!(FunctionCoefficient<'deps>, Coefficient);
 
-impl FunctionCoefficient {
-    pub fn new<F>(mut f: F) -> Self
+impl<'a> FunctionCoefficient<'a> {
+    fn new_eval<F>(
+        x: &mfem_sys::Vector,
+        d: *mut mfem_sys::cxx_void,
+    ) -> mfem_sys::Real
     where
         F: FnMut(&Vector) -> f64,
     {
-        fn eval<F1>(
-            x: &mfem_sys::Vector,
-            d: *mut mfem_sys::cxx_void,
-        ) -> mfem_sys::Real
-        where
-            F1: FnMut(&Vector) -> f64,
-        {
-            let f = unsafe { &mut *(d as *mut F1) };
-            let x = Ref::from_ref(x);
-            mfem_sys::Real(f(&*x))
-        }
+        let f = unsafe { &mut *(d as *mut F) };
+        let x = Ref::from_ref(x);
+        mfem_sys::Real(f(&*x))
+    }
+
+    /// Return a time-independent coefficient from the function `f`.
+    pub fn new<F>(mut f: F) -> Self
+    where
+        F: FnMut(&Vector) -> f64 + 'a,
+    {
         let d = &mut f as *mut F as *mut mfem_sys::cxx_void;
-        let fc = unsafe { mfem_sys::FunctionCoefficient_new(eval::<F>, d) };
+        let fc = unsafe {
+            mfem_sys::FunctionCoefficient_new(Self::new_eval::<F>, d)
+        };
         Owned::from_uniqueptr(fc)
+    }
+}
+
+/////////////////////////////
+// GridFunctionCoefficient //
+/////////////////////////////
+
+wrap_mfem_sys! {
+    /// Coefficient defined by a GridFunction. This coefficient is
+    /// mesh dependent.
+    GridFunctionCoefficient<'deps>
+}
+
+subclass!(GridFunctionCoefficient<'deps>, Coefficient);
+
+impl<'a> GridFunctionCoefficient<'a> {
+    pub fn new(gf: &'a GridFunction) -> Self {
+        Self::new_comp(gf, 1)
+    }
+
+    pub fn new_comp(gf: &'a GridFunction, comp: i32) -> Self {
+        Owned::emplace(unsafe {
+            mfem_sys::GridFunctionCoefficient::new1(gf.as_mfem(), c_int(comp))
+        })
     }
 }
 
