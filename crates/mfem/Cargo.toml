@@ -9,7 +9,7 @@ edition = "2021"
 repository = "https://github.com/mkovaxx/mfem-rs"
 
 [dependencies]
-cxx = "1.0.137"
+cxx = "1.0.157"
 autocxx = "0.28"
 mfem-sys = { version = "0.2.0", path = "../mfem-sys" }
 paste = "1.0"
