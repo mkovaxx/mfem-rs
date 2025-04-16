@@ -1496,6 +1496,8 @@ impl<'a> GridFunctionCoefficient<'a> {
 
     pub fn new_comp(gf: &'a GridFunction, comp: i32) -> Self {
         Owned::emplace(unsafe {
+            // The C++ definition of the constructor just stores the
+            // pointer, so a dependency on `gf` must be kept.
             mfem_sys::GridFunctionCoefficient::new1(gf.as_mfem(), c_int(comp))
         })
     }
