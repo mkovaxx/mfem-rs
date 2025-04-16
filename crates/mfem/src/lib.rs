@@ -682,7 +682,7 @@ pub struct MeshSave<'a> {
 }
 
 impl<'a> MeshSave<'a> {
-    pub fn precision(&self, p: i32) -> Self {
+    pub fn with_precision(&self, p: i32) -> Self {
         Self {
             mesh: self.mesh,
             precision: p,
