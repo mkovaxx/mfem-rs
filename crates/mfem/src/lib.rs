@@ -2,9 +2,7 @@ use autocxx::moveit::MakeCppStorage;
 use autocxx::prelude::*;
 use cxx::{let_cxx_string, memory::UniquePtrTarget};
 use paste::paste;
-use std::{
-    borrow::Cow, fmt, marker::PhantomData, path::Path, pin::Pin, ptr, slice,
-};
+use std::{borrow::Cow, fmt, marker::PhantomData, path::Path, pin::Pin, ptr, slice};
 
 /// *Pointers* to C++ objects are wrapped by this macro.
 macro_rules! wrap_mfem_sys {
@@ -212,9 +210,7 @@ impl<'a, T: RefTarget> std::ops::Deref for Mut<'a, T> {
 
 impl<'a, T: RefTarget> std::ops::DerefMut for Mut<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            std::mem::transmute::<&mut *mut T::Target, &mut T>(&mut self.ptr)
-        }
+        unsafe { std::mem::transmute::<&mut *mut T::Target, &mut T>(&mut self.ptr) }
     }
 }
 
@@ -566,9 +562,7 @@ impl Mesh {
     #[must_use]
     pub fn with_fec<'a, FEC>(&'a mut self, fec: FEC) -> MeshWithFEC<'a>
     where
-        FEC: FnOnce(
-            Option<Ref<'a, FiniteElementCollection>>,
-        ) -> Cow<'a, FiniteElementCollection>,
+        FEC: FnOnce(Option<Ref<'a, FiniteElementCollection>>) -> Cow<'a, FiniteElementCollection>,
     {
         let nodes = self.as_mfem().GetNodes2();
         // Safety: The mesh is stored alongside the FEC it may contain.
@@ -593,9 +587,7 @@ impl<const DIM: usize> MeshBuilder<DIM> {
     /// its index.  The dimension `N` must be the same as the one
     /// given to [`Mesh::init`] or this method will panic.
     pub fn add_vertex(&mut self, coord: [f64; DIM]) -> usize {
-        let idx: i32 = unsafe {
-            self.inner.as_mfem_mut().AddVertex1(coord.as_ptr()).into()
-        };
+        let idx: i32 = unsafe { self.inner.as_mfem_mut().AddVertex1(coord.as_ptr()).into() };
         debug_assert!(idx >= 0);
         let idx = idx as usize;
         if idx >= self.nvert {
@@ -635,8 +627,7 @@ impl<const DIM: usize> MeshBuilder<DIM> {
         let v0 = c_int(v[0] as i32);
         let v1 = c_int(v[1] as i32);
         let attr = c_int(attr);
-        let idx: i32 =
-            self.inner.as_mfem_mut().AddBdrSegment(v0, v1, attr).into();
+        let idx: i32 = self.inner.as_mfem_mut().AddBdrSegment(v0, v1, attr).into();
         idx as usize
     }
 
@@ -993,12 +984,7 @@ impl L2_FECollection {
         Self::with_basis(p, dim, BasisType::GaussLegendre, MapType::Value)
     }
 
-    pub fn with_basis(
-        p: i32,
-        dim: i32,
-        btype: BasisType,
-        map_type: MapType,
-    ) -> Self {
+    pub fn with_basis(p: i32, dim: i32, btype: BasisType, map_type: MapType) -> Self {
         Self::emplace(mfem_sys::L2_FECollection::new(
             c_int(p),
             c_int(dim),
@@ -1196,9 +1182,7 @@ impl<'a> FiniteElementSpace<'a> {
     /// Return a new space from the `mesh` an Finite Element
     /// Collection `fec`.
     #[must_use]
-    pub fn new<'mesh: 'a>(
-        mesh_fec: &'a mut MeshWithFEC<'a>,
-    ) -> FiniteElementSpaceBuilder<'a> {
+    pub fn new<'mesh: 'a>(mesh_fec: &'a mut MeshWithFEC<'a>) -> FiniteElementSpaceBuilder<'a> {
         // The `fec` FiniteElementSpace will hold to `mesh` and `fec`.
         // Warning: one must be careful if one updates the `mesh`.
         FiniteElementSpaceBuilder {
@@ -1331,9 +1315,7 @@ impl<'fes> GridFunction<'fes> {
     /// FiniteElementSpace `fes`.
     #[must_use]
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-        Self::emplace(unsafe {
-            mfem_sys::GridFunction::new2(fespace.as_mfem_internal_ptr())
-        })
+        Self::emplace(unsafe { mfem_sys::GridFunction::new2(fespace.as_mfem_internal_ptr()) })
     }
 
     pub fn own_fec(&self) -> Option<Ref<'fes, FiniteElementCollection>> {
@@ -1409,9 +1391,7 @@ subclass!(LinearForm<'deps>, Vector);
 impl<'fes> LinearForm<'fes> {
     #[must_use]
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-        let lfi = unsafe {
-            mfem_sys::LinearForm::new1(fespace.as_mfem_internal_ptr())
-        };
+        let lfi = unsafe { mfem_sys::LinearForm::new1(fespace.as_mfem_internal_ptr()) };
         Self::emplace(lfi)
     }
 
@@ -1477,10 +1457,7 @@ wrap_mfem_sys! {
 subclass!(FunctionCoefficient<'deps>, Coefficient);
 
 impl<'a> FunctionCoefficient<'a> {
-    fn new_eval<F>(
-        x: &mfem_sys::Vector,
-        d: *mut mfem_sys::cxx_void,
-    ) -> mfem_sys::Real
+    fn new_eval<F>(x: &mfem_sys::Vector, d: *mut mfem_sys::cxx_void) -> mfem_sys::Real
     where
         F: FnMut(&Vector) -> f64,
     {
@@ -1495,9 +1472,7 @@ impl<'a> FunctionCoefficient<'a> {
         F: FnMut(&Vector) -> f64 + 'a,
     {
         let d = &mut f as *mut F as *mut mfem_sys::cxx_void;
-        let fc = unsafe {
-            mfem_sys::FunctionCoefficient_new(Self::new_eval::<F>, d)
-        };
+        let fc = unsafe { mfem_sys::FunctionCoefficient_new(Self::new_eval::<F>, d) };
         Owned::from_uniqueptr(fc)
     }
 }
@@ -1600,9 +1575,7 @@ impl<'fes> BilinearForm<'fes> {
     /// Creates bilinear form associated with Finite Element space `fespace`.
     #[must_use]
     pub fn new(fespace: &'fes FiniteElementSpace) -> Self {
-        let b = unsafe {
-            mfem_sys::BilinearForm::new2(fespace.as_mfem_internal_ptr())
-        };
+        let b = unsafe { mfem_sys::BilinearForm::new2(fespace.as_mfem_internal_ptr()) };
         Self::emplace(b)
     }
 
@@ -1655,17 +1628,9 @@ impl<'fes> BilinearForm<'fes> {
         );
     }
 
-    pub fn recover_fem_solution(
-        &mut self,
-        x_vec: &Vector,
-        b_vec: &Vector,
-        x: &mut Vector,
-    ) {
-        self.as_mfem_mut().RecoverFEMSolution(
-            x_vec.as_mfem(),
-            b_vec.as_mfem(),
-            x.as_mfem_mut(),
-        );
+    pub fn recover_fem_solution(&mut self, x_vec: &Vector, b_vec: &Vector, x: &mut Vector) {
+        self.as_mfem_mut()
+            .RecoverFEMSolution(x_vec.as_mfem(), b_vec.as_mfem(), x.as_mfem_mut());
     }
 }
 
@@ -1774,9 +1739,7 @@ wrap_mfem_sys! {
 
 subclass!(BlockMatrix, AbstractSparseMatrix);
 
-impl<'a, 'deps: 'a> TryFrom<&'a OperatorHandle<'deps>>
-    for Ref<'a, SparseMatrix>
-{
+impl<'a, 'deps: 'a> TryFrom<&'a OperatorHandle<'deps>> for Ref<'a, SparseMatrix> {
     type Error = MfemError;
 
     fn try_from(o: &'a OperatorHandle<'deps>) -> Result<Self, Self::Error> {
