@@ -49,8 +49,8 @@ fn main() -> anyhow::Result<()> {
     //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
     //    largest number that gives a final mesh with no more than 50,000
     //    elements.
-    let ne = mesh.get_num_elems() as f64;
-    let ref_levels = ((50000. / ne).log2() / dim as f64).floor() as u32;
+    let num_elems = mesh.get_num_elems() as f64;
+    let ref_levels = ((50000. / num_elems).log2() / dim as f64).floor() as u32;
     for _ in 0..ref_levels {
         mesh.uniform_refinement(RefAlgo::A);
     }
@@ -80,8 +80,8 @@ fn main() -> anyhow::Result<()> {
     //    the boundary attributes from the mesh as essential (Dirichlet) and
     //    converting them to a list of true dofs.
     let mut ess_tdof_list = ArrayInt::new();
-    if let Some(max_bdr_attr) = fespace.mesh().bdr_attributes().iter().max() {
-        let mut ess_bdr = ArrayInt::with_len(*max_bdr_attr as usize);
+    if let Some(&max_bdr_attr) = fespace.mesh().bdr_attributes().iter().max() {
+        let mut ess_bdr = ArrayInt::with_len(max_bdr_attr as usize);
         ess_bdr.fill(1);
         fespace.get_essential_true_dofs(&ess_bdr, &mut ess_tdof_list, None);
     }
@@ -104,8 +104,9 @@ fn main() -> anyhow::Result<()> {
     // 9. Set up the bilinear form a(.,.) on the finite element space
     //    corresponding to the Laplacian operator -Delta, by adding
     //    the Diffusion domain integrator.
+    let mut one = ConstantCoefficient::new(1.0);
     let mut a = BilinearForm::new(&fespace);
-    a.add_domain_integrator(DiffusionIntegrator::new());
+    a.add_domain_integrator(DiffusionIntegrator::with_coeff(&mut one));
 
     // 10. Assemble the bilinear form and the corresponding linear system,
     //     applying any necessary transformations such as: eliminating boundary
