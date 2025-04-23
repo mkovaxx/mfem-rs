@@ -14,7 +14,7 @@ include_cpp! {
     #include "ffi_autocxx.hpp"
     safety!(unsafe)
     generate_pod!("mfem::real_t")
-    generate!("acxx::MFEM_USE_EXCEPTIONS")
+    generate!("acxx::mfem_use_exceptions")
     generate!("acxx::NumBasisTypes")
     generate!("mfem::ErrorAction")
     generate!("mfem::set_error_action")
@@ -34,11 +34,15 @@ include_cpp! {
     generate!("mfem::Mesh_ElementConformity") // Mesh::ElementConformity
     generate!("mfem::Mesh_FaceInfoTag")     // Mesh::FaceInfoTag
 
+    generate!("mfem::DofTransformation")
+
     generate!("mfem::FiniteElement")
     generate!("mfem::FiniteElement_MapType")
     generate!("mfem::FiniteElementCollection")
     generate!("mfem::L2_FECollection")
+    generate!("acxx::L2_FECollection_as_FiniteElementCollection")
     generate!("mfem::H1_FECollection")
+    generate!("acxx::H1_FECollection_as_FiniteElementCollection")
     generate!("mfem::H1_Trace_FECollection")
     generate!("mfem::RT_FECollection")
     generate!("mfem::ND_FECollection")
@@ -60,6 +64,7 @@ include_cpp! {
     generate!("acxx::LinearForm_as_Vector")
     generate!("acxx::LinearForm_as_mut_Vector")
     generate!("mfem::BilinearForm")
+    generate!("acxx::BilinearForm_as_Matrix")
     generate!("mfem::MixedBilinearForm")
 
     generate!("mfem::Coefficient")
@@ -82,7 +87,7 @@ include_cpp! {
     generate!("mfem::DeltaLFIntegrator")
     generate!("mfem::DomainLFIntegrator")
     generate!("acxx::DomainLFIntegrator_as_DeltaLFIntegrator")
-    generate!("acxx::DomainLFIntegrator_as_mut_DeltaLFIntegrator")
+    generate!("acxx::DomainLFIntegrator_as_LinearFormIntegrator")
     generate!("acxx::DeltaLFIntegrator_as_LinearFormIntegrator")
     generate!("acxx::DeltaLFIntegrator_as_mut_LinearFormIntegrator")
     generate!("mfem::BilinearFormIntegrator")
@@ -95,7 +100,11 @@ include_cpp! {
     generate!("acxx::ConvectionIntegrator_as_BilinearFormIntegrator")
     generate!("acxx::ConvectionIntegrator_as_mut_BilinearFormIntegrator")
 
+    generate!("mfem::AbstractSparseMatrix")
     generate!("mfem::SparseMatrix")
+    generate!("acxx::SparseMatrix_as_AbstractSparseMatrix")
+    generate!("acxx::BlockMatrix_as_AbstractSparseMatrix")
+    generate!("mfem::BlockMatrix")
     generate!("mfem::Solver")
     generate!("acxx::Solver_as_Operator")
     generate!("acxx::Solver_as_mut_Operator")
@@ -170,10 +179,19 @@ mod ffi_cxx {
         type FiniteElementCollectionCxx = crate::FiniteElementCollection;
 
         #[namespace = "mfem"]
+        #[cxx_name = "DofTransformation"]
+        type DofTransformationCxx = crate::DofTransformation;
+
+        #[namespace = "mfem"]
         #[cxx_name = "FiniteElementSpace"]
         type FiniteElementSpaceCxx = crate::FiniteElementSpace;
         fn Conforming(self: &FiniteElementSpaceCxx) -> bool;
         fn Nonconforming(self: &FiniteElementSpaceCxx) -> bool;
+        fn GetElementVDofs(
+            self: &FiniteElementSpaceCxx,
+            i: i32,
+            vdofs: Pin<&mut ArrayInt>,
+        ) -> *mut DofTransformationCxx;
         fn GetEssentialVDofs(
             self: &FiniteElementSpaceCxx,
             bdr_attr_is_ess: &ArrayInt,
@@ -213,19 +231,17 @@ mod ffi_cxx {
         #[namespace = "mfem"]
         #[cxx_name = "FunctionCoefficient"]
         type FunctionCoefficientCxx = crate::FunctionCoefficient;
-        type c_void;
+        type cxx_void;
         unsafe fn FunctionCoefficient_new(
-            f: unsafe fn(&VectorCxx, data: *mut c_void) -> real,
-            data: *mut c_void,
+            f: unsafe fn(&VectorCxx, data: *mut cxx_void) -> real,
+            data: *mut cxx_void,
         ) -> UniquePtr<FunctionCoefficientCxx>;
 
         #[namespace = "mfem"]
         #[cxx_name = "Matrix"]
         type MatrixCxx = crate::Matrix;
-        #[cxx_name = "upcast_to_operator"]
-        fn Matrix_to_operator<'a>(m: &'a MatrixCxx) -> &'a Operator;
-        #[cxx_name = "upcast_to_operator_mut"]
-        fn Matrix_to_operator_mut<'a>(m: Pin<&'a mut MatrixCxx>) -> Pin<&'a mut Operator>;
+        #[cxx_name = "upcast_as_operator"]
+        unsafe fn Matrix_as_Operator<'a>(m: *const MatrixCxx) -> *const Operator;
 
         #[namespace = "mfem"]
         #[cxx_name = "OperatorHandle"]
@@ -236,7 +252,7 @@ mod ffi_cxx {
         #[namespace = "mfem"]
         #[cxx_name = "SparseMatrix"]
         type SparseMatrixCxx = crate::SparseMatrix;
-        unsafe fn OperatorHandle_ref_SparseMatrix<'a>(
+        unsafe fn OperatorHandle_as_SparseMatrix<'a>(
             o: &'a OperatorHandleCxx,
         ) -> &'a SparseMatrixCxx;
         unsafe fn SparseMatrix_to_OperatorHandle<'a>(

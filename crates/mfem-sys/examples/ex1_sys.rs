@@ -183,7 +183,7 @@ fn main() {
 
     // 11. Solve the linear system A X = B.
     // Use a simple symmetric Gauss-Seidel preconditioner with PCG.
-    let a_sparse = unsafe { OperatorHandle_ref_SparseMatrix(&a_mat) };
+    let a_sparse = unsafe { OperatorHandle_as_SparseMatrix(&a_mat) };
     let mut m_mat = UniquePtr::emplace(GSSmoother::new1(a_sparse, c_int(0), c_int(1)));
     let solver = GSSmoother_as_mut_Solver(m_mat.pin_mut());
     PCG(

@@ -7,6 +7,11 @@
 using namespace mfem;
 
 template<typename T>
+Operator const* upcast_as_operator(T const* x) {
+    return x;
+}
+
+template<typename T>
 Operator const& upcast_to_operator(T const& x) {
     return x;
 }
@@ -24,7 +29,7 @@ Operator& OperatorHandle_oper_mut(OperatorHandle& x) {
     return *x;
 }
 
-SparseMatrix const& OperatorHandle_ref_SparseMatrix(OperatorHandle const& x) {
+SparseMatrix const& OperatorHandle_as_SparseMatrix(OperatorHandle const& x) {
     return *x.As<SparseMatrix>();
 }
 
@@ -52,7 +57,7 @@ std::unique_ptr<Array<T>> array_from_slice(T* data, int len, bool own_data) {
 
 using Element_Type = Element::Type;
 
-using c_void = void;
+using cxx_void = void;
 
 std::unique_ptr<FunctionCoefficient>
 FunctionCoefficient_new(rust::Fn<real_t(mfem::Vector const &, void*)> f,
